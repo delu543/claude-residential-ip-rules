@@ -26,3 +26,12 @@
 - 本机 Chrome 实测：设置 WebRtcIPHandling 并由用户重新加载政策后，同一页面 9 个国内/海外 STUN 检测全部显示未检测到 IP 泄露，页面 HTTP 出口仍是普通订阅。不是将检测域名改走住宅。未做 Windows 实机测试。
 - 系统 DNS UDP/TCP 对 Claude 域名均返回 fake-IP；普通浏览器的 DNS 检测观察到普通节点地区递归解析器，没有观察到本地运营商解析器。这是有范围的样本，不是全部 DNS 永久无泄露证明。
 - 住宅网络可用性与防泄露分开验收：节点入站 TCP 不可达时不能把账号暂停归咎于泄露，也不能宣称修复策略已恢复住宅服务。
+
+## Windows扩展（2026-10-29，本次新增）
+
+- 本地12项Node测试通过：含实际IPC HTTP往返、Windows路径转义和严格DNS配置；原有住宅无备用/普通fallback保持。
+- Python增加Windows配置、注册表事务/冲突、DNS审计失败、运行中客户端拒绝、默认Chrome和DNS前置条件测试。Windows真实注册表测试只操作独立测试键，不触碰产品政策；Mac上明确跳过。
+- 本机Mihomo隔离故障回归通过：US优先、其他普通备用、全部普通失效拒绝、不借住宅、住宅失效拒绝、专用监听关闭失败、私网直连。
+- CI扩展到Windows/macOS/Linux；目标Windows的Verge服务/TUN、Chrome政策加载、STUN/DNS和Claude真实连接仍需现场验收。任何CI通过都不表示账号恢复或全进程强隔离。
+
+Changed Existing Capabilities：安装器从Mac-only扩展平台分派；Windows明确选择TUN时可启用，已开启时增加strict-route；Chrome的DNS政策只在已验收的TUN前提下改变。Mac已有配置不自动更新；本次未修改作者运行网络。

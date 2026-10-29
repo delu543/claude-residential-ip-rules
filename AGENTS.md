@@ -6,7 +6,7 @@
 
 ## 必须遵循的实施顺序
 
-1. 用 `manage.py inspect` 读取当前 profile 与真实路径。不要打印 URL、UUID、密码、完整配置或导出用户聊天。确认 OS、Verge、Mihomo 版本、进程路径和节点角色。macOS 是已实现的自动配置平台；其他平台只生成方案，需适配路径和 API。
+1. 用 `manage.py inspect` 读取当前 profile 与真实路径。不打印 URL、UUID、密码、完整配置或用户聊天。确认 OS、Verge、Mihomo 版本、进程路径和节点角色。macOS 和原生 Windows 已有实现；Windows 先读 docs/WINDOWS.md 并用 windows_setup.py，WSL/Linux/未知平台需另做网络适配。
 2. 读现有 profile/global merge/script，确认执行顺序。保留当前工作；记录哈希。不得把作者电脑的历史 IP、UID、路径写进目标电脑。
 3. 两份订阅及一个住宅节点身份必须明确。仅有节点名称无法证明住宅独享。预期公网 IP 必须经隔离代理验证或用户明确提供；不要自动批准新的出口。
 4. init 后校对私有设置。特别检查普通 provider 只来自普通订阅、US 名称匹配、供应商特殊 bootstrap DNS、真实 bundle ID（不能仅凭名为 ChatGPT.app 就归为 Codex）。
@@ -22,4 +22,6 @@
 
 ## 防泄露验收新增要求
 
-读取 docs/LEAK-PROTECTION.md。不能只改 Clash 就宣称 Chrome WebRTC 已保护：必须核验浏览器生效策略及真实 STUN 测试。不要为了让检测 IP 相同把整个 Chrome 或 IP 检测域名改走住宅。浏览器策略影响网页音视频，需告知；其他应用不受该策略控制。Windows 不得套用 Mac 安装路径并报成功；账号暂停与网络错误分开记录，不能保证反封禁。
+读取 docs/LEAK-PROTECTION.md。不能只改 Clash 就宣称 Chrome WebRTC 已保护：必须核验浏览器生效策略及真实 STUN 测试。不要为了让检测 IP 相同把整个 Chrome 或 IP 检测域名改走住宅。浏览器策略影响网页音视频，需告知；其他应用不受该策略控制。Windows 按本机 APPDATA、实际进程及命名管道配置，Desktop 用官方 HKCU 政策；存在 HKLM 冲突就停。账号暂停与网络错误分开记录，不能保证反封禁。
+
+Windows 交付必须包含：版本与签名、阶段回执、TUN strict-route、UDP/TCP DNS 查询、Chrome/Edge 有效政策与 STUN、Claude 与普通连接链、隔离故障及回退。缺项明确未验收，不得把 CI 当目标机实测或修改 fullyVerified 字段伪造完成。不要关闭系统安全功能来消除安装错误。

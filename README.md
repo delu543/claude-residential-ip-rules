@@ -1,6 +1,6 @@
 # Claude 网络住宅 IP 配置规则
 
-给 Codex 使用的 **macOS + Clash Verge Rev / Mihomo** 本地配置工具与实施说明。把两份订阅合并进一个运行配置，分别使用各自节点，不需要手动切换订阅卡片，也不是把两份订阅串联中转。
+给 Codex 使用的 **macOS / Windows + Clash Verge Rev / Mihomo** 本地配置工具与实施说明。把两份订阅合并进一个运行配置，分别使用各自节点，不需要手动切换订阅卡片，也不是把两份订阅串联中转。
 
 **此仓库不提供住宅 IP 或订阅，也不保证防封号。** 复用的是分流策略，不是作者的账号、IP、节点、订阅密钥或电脑路径。你需要自己拥有普通订阅和固定住宅订阅。
 
@@ -17,19 +17,23 @@
 
 ## 直接交给 Codex
 
-在目标 Mac 克隆仓库后，把下面这段发给 Codex：
+在目标 Mac 或 Windows 电脑克隆仓库后，把下面这段发给 Codex：
 
-> 请读取本仓库 AGENTS.md 和 docs/SETUP.md，在我的 Mac 上配置 Clash Verge。先读取实际客户端版本、当前订阅、扩展脚本、节点和应用路径；使用我自己的两份订阅。只有 Claude 固定住宅节点，故障不切换不直连；ChatGPT、Codex 和普通外网优先普通订阅美国节点，美国失效可用其他地区，不能占住宅专线；国内直连。先生成备份和候选、做隔离测试，再应用并验证客户端。不要启用 LuLu、改变时区或终止我的工作。缺少订阅身份或固定出口信息时再询问，不能猜测。不要把我的私有配置推送到 GitHub。
+> 请读取本仓库 AGENTS.md、docs/SETUP.md；Windows 另读 docs/WINDOWS.md。在我的电脑上配置 Clash Verge，读取真实版本、订阅、脚本、节点和应用路径，使用我自己的两份订阅。只有 Claude 固定住宅，失败不换节点不直连；其他外网优先普通美国节点，失效可用其他普通地区，国内直连。配置 DNS 接管和浏览器 WebRTC 防泄露，不把整个浏览器改走住宅。先备份、生成候选并隔离测试，再应用、验证实际客户端和浏览器。不要启用 LuLu、改变时区或终止工作。缺少订阅身份或固定出口信息时再问，不能猜测。不上传私有配置；未通过的验收明确列出。
 
 Codex 可以自动读取和配置，但**首次仍需明确哪份是住宅订阅、固定哪个节点、预期出口 IP**。操作系统权限提示需用户自己批准。未知 Claude Desktop 版本不能冒充已完成适配。
 
 ## DNS / WebRTC 防泄露与平台限制
 
-**普通 Chrome 的 WebRTC 防护必须单独配置，分流规则本身不足以阻止 STUN 暴露直连地址。** 无需把整个浏览器或检测网站改走住宅。运行 `python3 scripts/browser_privacy.py apply`，在 `chrome://policy` 重新加载并核验，然后实际复测。详见 [防泄露、故障诊断与恢复](docs/LEAK-PROTECTION.md)。这项浏览器策略支持 macOS/Windows；Clash 与客户端自动安装器仍仅适配 macOS，Windows 会在修改前明确停止。
+**浏览器的 WebRTC 防护必须单独配置，分流规则本身不足以阻止 STUN 暴露直连地址。** 无需把整个浏览器或检测网站改走住宅。Chrome 运行 `python3 scripts/browser_privacy.py apply` 后，在 `chrome://policy` 重新加载并实际复测。Windows 已提供双订阅、命名管道热加载、Desktop 官方注册表、原生 Code、Chrome/Edge 和 DNS 检查流程，见 [Windows 完整入口](docs/WINDOWS.md)。Edge 使用不同的正式政策键。CI 不代替目标机浏览器、客户端及系统服务验收。
 
 2026-10-29 起默认 **只有 Claude 走住宅**，ChatGPT 改走普通订阅。旧用户若确实需要保留 ChatGPT 住宅，可在私有设置显式添加 `"chatgptResidential": true`；更新代码不会自动修改正在运行的电脑，需要重新 prepare、审阅、apply。
 
-## 快速命令
+## Windows 入口
+
+先读 [docs/WINDOWS.md](docs/WINDOWS.md)。`scripts/windows_setup.py` 统一执行 prepare / apply / check / rollback；先用 `manage.py init` 从本机生成私有设置。原生 Windows Python 需要安装 `requirements.txt` 中的 PyYAML，不能套用 WSL 网络。系统权限批准、真实节点身份和有效浏览器政策检查不能跳过。
+
+## macOS 快速命令
 
 要求 Python 3.9+、Node.js 18+、curl、已安装的 Clash Verge Rev；YAML 读取使用 macOS Ruby，或你自己的 Python 环境中的 PyYAML。运行测试不需要账号。
 

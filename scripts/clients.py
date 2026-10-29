@@ -6,13 +6,19 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from manage import ROOT, read, save, dump, digest, preflight, require_macos
+from manage import ROOT, read, save, dump, digest, preflight
+from platform_support import require_platform, process_inventory
 
 def proxy_env(o):
     url = f"http://127.0.0.1:{o['port']}"
     return {k: url for k in ('HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy')} | {'NO_PROXY': '', 'no_proxy': ''}
 
-def targets(o, home):
+def targets(o, home, code_only=False):
+    if code_only:
+        code = home / ".claude/settings.json"
+        c = read(code) if code.exists() else {}
+        c["env"] = {**c.get("env", {}), **proxy_env(o)}
+        return [(code, c)]
     lib = home / 'Library/Application Support/Claude-3p/configLibrary'
     meta = read(lib / '_meta.json')
     ident = meta['appliedId']
@@ -34,26 +40,37 @@ def main():
     parser.add_argument('command', choices=['plan', 'apply', 'rollback', 'code'])
     parser.add_argument('--settings', type=Path, default=ROOT / '.private/settings.json')
     parser.add_argument('--backup', type=Path, default=ROOT / '.private/clients')
-    parser.add_argument('--binary', default=str(Path.home() / '.local/bin/claude'))
+    parser.add_argument('--binary', default=str(Path.home() / ('.local/bin/claude.exe' if sys.platform == 'win32' else '.local/bin/claude')))
+    parser.add_argument('--code-only', action='store_true', help='Configure Code independently of Desktop format')
     a, rest = parser.parse_known_args()
-    require_macos()
+    require_platform()
     os.umask(0o077)
     o = read(a.settings)
     if a.command == 'code':
         preflight(o)
+        if sys.platform == 'win32' and (not Path(a.binary).is_file() or Path(a.binary).suffix.lower() != '.exe'):
+            raise ValueError('Use an existing native Windows Claude executable, not a shell wrapper or WSL binary')
         env = dict(os.environ); env.update(proxy_env(o))
-        os.execvpe(a.binary, [a.binary] + (rest[1:] if rest[:1] == ['--'] else rest), env)
+        argv = [a.binary] + (rest[1:] if rest[:1] == ['--'] else rest)
+        if sys.platform == 'win32':
+            sys.exit(subprocess.call(argv, env=env))
+        os.execvpe(a.binary, argv, env)
     if rest:
         raise ValueError('Unexpected arguments')
     if a.command in ('plan', 'apply'):
         # Unknown desktop builds stop here. Do not fabricate a config file path.
-        changes = targets(o, Path.home())
+        if sys.platform == 'win32' and not a.code_only:
+            raise ValueError('Use windows_desktop.py for Desktop and clients.py --code-only for native Code')
+        changes = targets(o, Path.home(), a.code_only)
         if a.command == 'plan':
             print('Recognized desktop proxy settings and Claude Code env settings; other keys preserved.')
             print('Quit Claude normally before apply; this tool does not terminate processes.')
             return
         preflight(o)
-        ps = subprocess.check_output(['ps', '-axo', 'command=']).decode()
+        ps = ('\n'.join(x.get('ExecutablePath') or x['Name'] for x in process_inventory()) if sys.platform == 'win32'
+              else subprocess.check_output(['ps', '-axo', 'command=']).decode())
+        if sys.platform == 'win32' and any('claude' in line.lower() for line in ps.splitlines()):
+            raise ValueError('Claude is running; save work and exit before changing client settings')
         if any('/Claude.app/Contents/MacOS/' in line for line in ps.splitlines()):
             raise ValueError('Claude is running; save work and quit before client settings change')
         a.backup.mkdir(parents=True, exist_ok=False)

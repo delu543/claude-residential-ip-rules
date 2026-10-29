@@ -53,7 +53,7 @@ def main():
     try:
         with tempfile.TemporaryDirectory(prefix='claude-route-integration-') as td:
             td=Path(td); normalport, dedicated, control = freeport(), freeport(), freeport()
-            o=json.loads((ROOT/'examples/settings.example.json').read_text())
+            o=json.loads((ROOT/'examples/settings.example.json').read_text(encoding='utf-8'))
             o.update(residential=res.node('fixed-test'), port=dedicated, claudePaths=['/nonexistent/Claude.app/'],codexPaths=['/nonexistent/Codex.app/'])
             o['residential']={k:o['residential'][k] for k in ('name','type','server','port')}
             o['ordinaryProvider']={'type':'file','path':str(td/'ordinary.json')}
@@ -78,7 +78,7 @@ def main():
             for _ in range(60):
                 try:api('/version');break
                 except subprocess.CalledProcessError:
-                    if proc.poll() is not None:raise RuntimeError((td/'core.log').read_text())
+                    if proc.poll() is not None:raise RuntimeError((td/'core.log').read_text(encoding='utf-8'))
                     time.sleep(.1)
             def health():
                 for name in ['REJECT', 'US test', 'JP test', '普通·美国', '普通·其他地区', '普通外网（美国优先）']:
@@ -87,7 +87,7 @@ def main():
                 return subprocess.run(['curl','-fsS','--noproxy','','--proxy',f'http://127.0.0.1:{port}','--max-time','3',url],capture_output=True,text=True)
             health()
             q=request(normalport,'http://ordinary.example.invalid/request')
-            assert q.stdout=='US', (q.stdout, q.stderr, api('/proxies'), us.calls, jp.calls, (td/'core.log').read_text())
+            assert q.stdout=='US', (q.stdout, q.stderr, api('/proxies'), us.calls, jp.calls, (td/'core.log').read_text(encoding='utf-8'))
             assert request(dedicated,'http://downloads.example.invalid/file').stdout=='RES'
             assert request(normalport,'http://claude.ai/request').stdout=='RES'
             assert request(normalport,'http://chatgpt.com/request').stdout=='US'

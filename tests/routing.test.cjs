@@ -68,3 +68,14 @@ test('enabled TUN captures UDP and TCP DNS and retains unrelated options', () =>
   const r=build(c,o);assert.deepEqual(r.tun['dns-hijack'],['any:53','tcp://any:53']);
   assert.equal(r.tun.stack,'gvisor');assert.deepEqual(build(r,o),r);
 });
+test('Windows paths escape backslashes, exact exe boundaries and case insensitive matches',()=>{
+  const {c,o}=fixture();o.platform='win32';o.claudePaths=['C:\\Users\\测试\\Claude\\Claude.exe'];o.codexPaths=['C:\\Apps\\Codex\\Codex.exe'];
+  const r=build(c,o);assert.ok(r.rules[0].includes('(?i)'));assert.ok(r.rules[0].includes('Claude\\.exe$'));
+  assert.ok(!r.rules.join('\n').includes('PROCESS-NAME,node.exe'));
+});
+test('Windows TUN requires explicit enable opt-in, strict DNS when already on',()=>{
+  const {c,o}=fixture();o.platform='win32';assert.equal(build(c,o).tun.enable,false);
+  o.windowsTun=true;const r=build(c,o);assert.equal(r.tun.enable,true);assert.equal(r.tun['strict-route'],true);
+  assert.equal(r.tun['auto-route'],true);assert.equal(r.dns['enhanced-mode'],'fake-ip');
+  assert.deepEqual(r.tun['dns-hijack'],['any:53','tcp://any:53']);assert.deepEqual(build(r,o),r);
+});

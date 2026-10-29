@@ -27,7 +27,11 @@ function build(config, o) {
   ];
   config.mode = 'rule';
   config['find-process-mode'] = 'always';
-  const pathPattern = paths => '^(?:' + paths.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')';
+  const pathPattern = paths => (o.platform === 'win32' ? '(?i)' : '') + '^(?:' + paths.map(p => {
+    const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Directory entries carry a separator; executable entries match exactly.
+    return escaped + (/[\\/]$/.test(p) ? '' : '$');
+  }).join('|') + ')';
   const cp = pathPattern(o.claudePaths), xp = pathPattern(o.codexPaths);
   const claudeDomains = ['claude.ai', 'claude.com', 'anthropic.com', 'claudeusercontent.com'];
   const openaiDomains = ['chatgpt.com', 'openai.com', 'oaistatic.com', 'oaiusercontent.com'];
@@ -58,6 +62,15 @@ function build(config, o) {
     'nameserver-policy': {'geosite:cn,private': direct,
       ...Object.fromEntries(claudeDomains.map(d => ['+.' + d, [`https://1.1.1.1/dns-query#${claude}`]])),
       ...Object.fromEntries(openaiDomains.map(d => ['+.' + d, [`https://1.1.1.1/dns-query#${o.chatgptResidential === true ? claude : normal}`]]))}};
+  if (o.platform === 'win32') {
+    if (o.windowsTun === true) config.tun = {...(config.tun || {}), enable:true, 'auto-route':true, 'auto-detect-interface':true};
+    if (config.tun?.enable) {
+      config.tun['auto-route'] = true;
+      config.tun['strict-route'] = true;
+      config.dns['enhanced-mode'] = 'fake-ip';
+      config.dns['fake-ip-range'] = '198.18.0.1/16';
+    }
+  }
   // Cover both DNS transports without enabling/restarting TUN implicitly.
   if (config.tun?.enable) config.tun['dns-hijack'] = [...new Set([...(config.tun['dns-hijack'] || []), 'any:53', 'tcp://any:53'])];
   return config;

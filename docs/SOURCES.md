@@ -11,3 +11,11 @@
 本仓库原创代码与文档以MIT许可公开。Clash Verge Rev与Mihomo分别适用其上游许可；仓库不重新分发这两个二进制、GeoSite/GeoIP数据、订阅内容。用户自行安装的依赖仍受各自许可与供应商条款约束。
 
 已在源环境读取Mihomo v1.19.15。仅对通过测试的接口作兼容声明；不宣称所有操作系统、Claude构建或未来版本可无人值守安装。Node用于本地渲染测试，Python标准库+Ruby/Psych用于本地配置，不额外上传订阅给第三方转换服务。
+
+Windows扩展来源（2026-10-29核对）：
+
+- [Mihomo控制接口](https://wiki.metacubex.one/en/config/general/)：Windows named pipe，使用Node原生HTTP IPC，不复制上游实现。
+- [TUN与DNS](https://wiki.metacubex.one/en/config/inbound/tun/)：Windows多网卡DNS、局域网DNS边界和兼容性。
+- [Claude Desktop固定代理](https://claude.com/docs/third-party/claude-desktop/network-proxy)、[配置优先级](https://claude.com/docs/third-party/claude-desktop/configuration-format)：受支持版本、HKCU/HKLM优先级和PAC风险，仅使用固定HTTP代理键。
+- [Chrome政策](https://chromeenterprise.google/policies/#WebRtcIPHandling)、[Edge WebRTC](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/WebRtcLocalhostIpHandling)、[Edge DNS模式](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/DnsOverHttpsMode)：正式政策键，不能盲目跨浏览器同名复制。
+- PyYAML 6.0.3采用MIT许可，仅列依赖，不捆绑；不引入新常驻过滤服务。

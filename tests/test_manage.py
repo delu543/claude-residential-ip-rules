@@ -15,7 +15,7 @@ class SafetyTests(unittest.TestCase):
     def test_private_write_mode(self):
         with tempfile.TemporaryDirectory() as tmp:
             p=Path(tmp)/'settings.json';manage.save(p,'{}')
-            self.assertEqual(p.stat().st_mode & 0o777,0o600)
+            if sys.platform != 'win32': self.assertEqual(p.stat().st_mode & 0o777,0o600)
             manage.save(p,'{"updated":true}')
             self.assertTrue(manage.read(p)['updated'])
 
@@ -73,19 +73,19 @@ class SafetyTests(unittest.TestCase):
             with patch.object(manage,'api') as api,patch.object(manage,'preflight',side_effect=ValueError('bad egress')):
                 with self.assertRaisesRegex(ValueError,'restored'):manage.apply(a)
                 self.assertEqual(api.call_count,2)
-            self.assertEqual([p.read_text() for p in targets],['old-0','old-1'])
+            self.assertEqual([p.read_text(encoding='utf-8') for p in targets],['old-0','old-1'])
 
     def test_apply_rollback_and_later_edit_protection(self):
         with tempfile.TemporaryDirectory() as tmp:
             a,targets=self.plan_fixture(Path(tmp))
             with patch.object(manage,'api'),patch.object(manage,'preflight'):
                 manage.apply(a)
-                self.assertEqual(targets[0].read_text(),'new-routing.js')
+                self.assertEqual(targets[0].read_text(encoding='utf-8'),'new-routing.js')
                 manage.save(targets[0],'later user edit')
                 with self.assertRaisesRegex(ValueError,'Later edits'):manage.rollback(a)
-                self.assertEqual(targets[0].read_text(),'later user edit')
+                self.assertEqual(targets[0].read_text(encoding='utf-8'),'later user edit')
                 manage.save(targets[0],'new-routing.js');manage.rollback(a)
-            self.assertEqual([p.read_text() for p in targets],['old-0','old-1'])
+            self.assertEqual([p.read_text(encoding='utf-8') for p in targets],['old-0','old-1'])
 
     def test_prepare_hash_guard_before_any_write(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -93,6 +93,6 @@ class SafetyTests(unittest.TestCase):
             with patch.object(manage,'api') as api:
                 with self.assertRaisesRegex(ValueError,'changed since prepare'):manage.apply(a)
                 api.assert_not_called()
-            self.assertEqual(targets[1].read_text(),'old-1')
+            self.assertEqual(targets[1].read_text(encoding='utf-8'),'old-1')
 
 if __name__=='__main__':unittest.main()

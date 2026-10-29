@@ -1,5 +1,7 @@
 # 本地实施、验收与恢复
 
+Windows 首先使用 [WINDOWS.md](WINDOWS.md) 的原生 Windows 流程。下文为共用原则及 Mac 命令约定；Windows 热加载使用实际运行配置中的本机 named pipe，不套用 Unix socket。
+
 ## 1. 只读盘点
 
 `scripts/manage.py inspect` 不输出订阅链接和认证字段。确认住宅订阅已选中、普通订阅仍有效；从 profiles.yaml 识别真实 UID 和 profile-specific script，不能假定作者机器上的文件名。读取 global merge/script 与 profile merge/script 的执行顺序；最终 runtime 是核验对象，持久脚本才是维护来源。

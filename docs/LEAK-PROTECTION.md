@@ -56,7 +56,13 @@ python3 scripts/browser_privacy.py rollback
 
 `account suspended/on hold` 是账号状态，修代理不会解除。住宅、独享、新邮箱均不保证账号可用。不同电脑、系统、出口和账号必须独立取证，不能将 Mac 测试当作 Windows 成功。按 [Anthropic 官方申诉说明](https://support.claude.com/en/articles/8241253-safeguards-warnings-and-appeals) 请求审核；仓库不用于规避账号停用。
 
-Windows 尚无 Clash 自动安装适配：`manage.py`/`clients.py` 会明确停止；只有 `browser_privacy.py` 支持 Windows 策略写入。目标机 Codex 应先读取实际 Clash/内核版本、端口、规则模式、TUN/DNS、Claude 路径和连接链，再出方案。请提供脱敏摘要和停用提示文字，不发送订阅 URL、UUID、密码、登录 nonce 或账号 Cookie。
+Windows 已增加自动配置入口，见 [WINDOWS.md](WINDOWS.md)。先读取实际版本、路径、模式、TUN/DNS 和连接链，再用 windows_setup.py 准备、应用和验证。不要提供订阅 URL、UUID、密码、登录 nonce 或账号 Cookie；账号停用需单独官方审核。
+
+## Windows 浏览器与 DNS
+
+Chrome 使用 WebRtcIPHandling；Edge 使用 WebRtcLocalhostIpHandling，后者需正常重启，个人微软账号配置可能不适用，必须实测。不能只写注册表就宣称生效。Windows TUN 使用 auto-route、strict-route、UDP/TCP 53 和 fake-IP；局域网 DNS、加密 DNS、IPv6 仍须按目标机验收。
+
+默认 WebRTC 命令不改 DNS。独立 `browser_privacy.py --policy dns` 在固定出口和 TUN 预检通过后设置 DnsOverHttpsMode=off，将浏览器解析交给系统/TUN，再做 DNS 查询测试。关闭 DoH 本身不是防泄露措施，Clash/TUN 退出后也不具备全系统 DNS 强制隔离。Windows 统一流程包含该阶段，回退先恢复浏览器 DNS 政策再恢复路由。
 
 ## 官方依据
 

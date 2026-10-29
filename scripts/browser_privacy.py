@@ -13,6 +13,7 @@ KEY = 'WebRtcIPHandling'
 VALUE = 'disable_non_proxied_udp'
 DOMAIN = 'com.google.Chrome'
 REGPATH = r'Software\Policies\Google\Chrome'
+BROWSER = 'chrome'
 
 def platform_check():
     if sys.platform not in ('darwin', 'win32'):
@@ -51,24 +52,47 @@ def apply(path):
     path.parent.mkdir(parents=True,exist_ok=True)
     fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     with os.fdopen(fd,'w') as f:
-        json.dump({'platform':sys.platform,'before':before,'after':VALUE},f)
+        json.dump({'platform':sys.platform,'browser':BROWSER,'key':KEY,'before':before,'after':VALUE},f)
     write_policy(VALUE)
     if read_policy()!=VALUE: raise ValueError('Policy readback failed; keep backup for recovery')
-    print('Saved. In chrome://policy reload policies and verify WebRtcIPHandling status OK.')
-    print('Reload the WebRTC test page. Web calls may require TCP relays or fail. No Chrome restart was forced.')
+    print(f'Saved. In {BROWSER}://policy reload policies and verify {KEY} status OK.')
+    print('Edge WebRTC policy requires a normal browser restart and may not apply to Microsoft-account profiles. ' if BROWSER=='edge' else '')
+    print('Run actual STUN and DNS tests. Web calls may require TCP relays or fail. No browser restart was forced.')
 
 def rollback(path):
-    r=json.loads(path.read_text())
-    if r['platform']!=sys.platform or r['after']!=VALUE or read_policy()!=VALUE:
+    r=json.loads(path.read_text(encoding='utf-8'))
+    if r['platform']!=sys.platform or r.get('browser','chrome')!=BROWSER or r.get('key','WebRtcIPHandling')!=KEY or r['after']!=VALUE or read_policy()!=VALUE:
         raise ValueError('Platform or later policy edit differs; refuse overwrite')
     write_policy(r['before'])
     print('Previous policy restored. Reload Chrome policies. Backup retained.')
 
 def main():
+    global KEY, VALUE, DOMAIN, REGPATH, BROWSER
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('command',choices=['check','apply','rollback'])
-    p.add_argument('--backup',type=Path,default=Path(__file__).resolve().parents[1]/'.private/browser-policy.json')
+    p.add_argument('--backup',type=Path)
+    p.add_argument('--browser',choices=['chrome','edge'],default='chrome')
+    p.add_argument('--policy',choices=['webrtc','dns'],default='webrtc')
+    p.add_argument('--settings',type=Path,default=Path(__file__).resolve().parents[1]/'.private/settings.json')
     a=p.parse_args();platform_check()
+    BROWSER=a.browser;KEY='WebRtcIPHandling';VALUE='disable_non_proxied_udp';DOMAIN='com.google.Chrome';REGPATH=r'Software\Policies\Google\Chrome'
+    if a.browser=='edge':
+        DOMAIN='com.microsoft.Edge';REGPATH=r'Software\Policies\Microsoft\Edge';KEY='WebRtcLocalhostIpHandling'
+    if a.policy=='dns':
+        KEY='DnsOverHttpsMode';VALUE='off'
+    if a.backup is None:
+        name='browser-policy.json' if a.browser=='chrome' and a.policy=='webrtc' else f'{a.browser}-{a.policy}-policy.json'
+        a.backup=Path(__file__).resolve().parents[1]/'.private'/name
+    if a.command=='apply' and sys.platform=='win32':
+        from windows_policy import machine_present
+        if machine_present(REGPATH): raise ValueError('Machine browser policy present; review effective policy before writing HKCU')
+    if a.command=='apply' and a.policy=='dns':
+        from manage import read, api, preflight
+        o=read(a.settings);preflight(o)
+        tun=api(o,'/configs').get('tun',{})
+        if not tun.get('enable') or not tun.get('auto-route') or (sys.platform=='win32' and not tun.get('strict-route')):
+            raise ValueError('DNS policy requires verified active TUN, auto-route and Windows strict-route first')
+        print('Browser DoH will defer to the system/TUN resolver. Test DNS after apply; do not claim protection if Clash is off.')
     if a.command=='check': print(json.dumps({KEY:read_policy(),'effectiveBrowserVerified':False}))
     elif a.command=='apply': apply(a.backup)
     else: rollback(a.backup)

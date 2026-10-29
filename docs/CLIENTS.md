@@ -1,6 +1,10 @@
 # 客户端设置与保障范围
 
-## Claude Desktop
+## Windows Desktop / Code
+
+见 [WINDOWS.md](WINDOWS.md)。windows_desktop.py 核验真实 exe 签名/版本，设置官方 HKCU 固定 HTTP 代理、移除 PAC 键；机器政策冲突停止。clients.py --code-only 单独合并原生 Code 设置。WSL、容器和共享 Node 需要分别验证。
+
+## macOS Claude Desktop
 
 本例源机器使用 `Claude-3p/configLibrary/_meta.json` 的 appliedId 指向本地配置，支持 `egressProxyUrl` 与 `egressProxyPacUrl`。`clients.py` 仅对**已存在且可解析**的这一结构进行适配：固定 `egressProxyUrl` 到本机17897，移除覆盖它的PAC，保留其余键。需用户正常退出，写入后正常打开并看实际代理日志/连接；不复制作者的配置、会话或凭据。
 

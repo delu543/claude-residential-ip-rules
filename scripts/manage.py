@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local-only macOS setup. No subscription credentials are logged or uploaded."""
+"""Local-only macOS / Windows setup. No subscription credentials are logged or uploaded."""
 import argparse
 import datetime
 import hashlib
@@ -8,16 +8,18 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import re
+from platform_support import default_verge_dir, default_mihomo, windows_paths, controller_options, ipc_api, require_platform
 import shutil
 import subprocess
 import sys
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DIR = Path.home() / 'Library/Application Support/io.github.clash-verge-rev.clash-verge-rev'
+DEFAULT_DIR = default_verge_dir()
 
 def read(path):
-    raw = Path(path).read_text()
+    raw = Path(path).read_text(encoding='utf-8-sig')
     try:
         return json.loads(raw)
     except ValueError:
@@ -26,6 +28,8 @@ def read(path):
             import yaml
             return yaml.safe_load(raw)
         except ImportError:
+            if sys.platform == 'win32':
+                raise ValueError('Install requirements.txt into a local venv; Windows YAML requires PyYAML') from None
             return json.loads(subprocess.check_output(['ruby', '-rjson', '-ryaml', '-e',
                 'puts JSON.generate(YAML.safe_load(STDIN.read, permitted_classes: [Time, Symbol], aliases: true))'], input=raw.encode(), stderr=subprocess.DEVNULL))
 
@@ -52,12 +56,14 @@ def profile_path(base, item):
     return p
 
 def api(o, endpoint, method='GET', body=None):
+    if o.get('apiPipe'):
+        return ipc_api(o['apiPipe'], endpoint, method, body)
     cmd = ['curl', '-fsS', '--max-time', '15', '--unix-socket', o['apiSocket'],
            '-X', method, 'http://localhost' + endpoint]
     if body is not None:
         cmd += ['-H', 'Content-Type: application/json', '--data-binary', '@-']
     result = subprocess.run(cmd, input=json.dumps(body) if body is not None else None,
-                            capture_output=True, text=True, check=True)
+                            capture_output=True, text=True, encoding='utf-8', check=True)
     return json.loads(result.stdout) if result.stdout.strip() else None
 
 def validate_options(o):
@@ -69,7 +75,7 @@ def validate_options(o):
     if not o['claudePaths'] or not o['codexPaths']:
         raise ValueError('Inspect actual app paths first')
     for p in o['claudePaths'] + o['codexPaths']:
-        if not p.startswith('/') or any(c in p for c in ',\n\r') or 'REPLACE' in p:
+        if not (p.startswith('/') or re.match(r'^[A-Za-z]:[\\/]', p)) or any(c in p for c in ',\n\r') or 'REPLACE' in p:
             raise ValueError('Invalid process path')
     p = o['ordinaryProvider']
     url = urllib.parse.urlsplit(p['url'])
@@ -83,6 +89,8 @@ def validate_options(o):
         raise ValueError('Residential endpoint must be an actual proxy')
 
 def discover_paths():
+    if sys.platform == 'win32':
+        return windows_paths()
     home = Path.home()
     claude, codex = [], []
     for folder in [Path('/Applications'), home / 'Applications', home / 'Desktop']:
@@ -127,9 +135,16 @@ def init_settings(a):
     o['expectedIp'] = a.expected_ip
     o['ordinaryProvider']['url'] = items[a.ordinary_uid]['url']
     o['claudePaths'], o['codexPaths'] = discover_paths()
+    if getattr(a, 'claude_path', None): o['claudePaths'] = a.claude_path
+    if getattr(a, 'codex_path', None): o['codexPaths'] = a.codex_path
     # Preserve vendor-specific bootstrap resolvers when already configured.
     runtime = read(a.verge_dir / 'clash-verge.yaml')
     o['proxyServerNameservers'] = runtime.get('dns', {}).get('proxy-server-nameserver') or o['proxyServerNameservers']
+    o.update(controller_options(runtime))
+    o['platform'] = sys.platform
+    o['windowsTun'] = bool(getattr(a, 'enable_tun', False))
+    if sys.platform == 'win32' and not runtime.get('tun', {}).get('enable') and not o['windowsTun']:
+        raise ValueError('Windows full coverage requires TUN: enable service/TUN in Verge or use --enable-tun after reviewing network impact')
     o['residentialUid'] = a.residential_uid
     o['ordinaryUid'] = a.ordinary_uid
     validate_options(o)
@@ -142,6 +157,10 @@ def prepare(a):
     o = read(a.settings); validate_options(o)
     profiles = read(a.verge_dir / 'profiles.yaml')
     items = {i['uid']: i for i in profiles['items']}
+    if o.get('platform', sys.platform) != sys.platform:
+        raise ValueError('Settings belong to another OS; initialize locally')
+    if sys.platform == 'win32' and not read(a.verge_dir / 'clash-verge.yaml').get('tun', {}).get('enable') and not o.get('windowsTun'):
+        raise ValueError('TUN is off; cannot promise Windows DNS/process coverage')
     if profiles['current'] != o['residentialUid']:
         raise ValueError('Select the residential base profile in Clash Verge first')
     res = items[o['residentialUid']]
@@ -151,11 +170,11 @@ def prepare(a):
     raw = read(profile_path(a.verge_dir, res))
     base = read(runtime)
     base['proxies'] = raw.get('proxies', [])
-    script = (ROOT / 'src/routing.js').read_text() + '\nconst OPTIONS = ' + json.dumps(o, ensure_ascii=False) + ';\nfunction main(config) { return build(config, OPTIONS); }\n'
+    script = (ROOT / 'src/routing.js').read_text(encoding='utf-8') + '\nconst OPTIONS = ' + json.dumps(o, ensure_ascii=False) + ';\nfunction main(config) { return build(config, OPTIONS); }\n'
     a.plan.mkdir(parents=True, exist_ok=False); a.plan.chmod(0o700)
     save(a.plan / 'routing.js', script)
     js = "const fs=require('fs'),vm=require('vm');let c={};vm.createContext(c);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),c);process.stdout.write(JSON.stringify(c.main(JSON.parse(fs.readFileSync(0,'utf8')))));"
-    result = subprocess.run(['node', '-e', js, str(a.plan / 'routing.js')], input=json.dumps(base), text=True, capture_output=True, check=True)
+    result = subprocess.run(['node', '-e', js, str(a.plan / 'routing.js')], input=json.dumps(base), text=True, encoding='utf-8', capture_output=True, check=True)
     candidate = json.loads(result.stdout)
     fixed = next(p for p in candidate['proxies'] if p['name'] == '住宅固定节点')
     if fixed['type'] == 'reject':
@@ -226,22 +245,23 @@ def rollback(a):
     api(read(a.plan / 'settings.json'), '/configs?force=false', 'PUT', {'path': p['targets'][1]})
     print('Previous script and runtime restored. Check client connectivity.')
 
-def require_macos():
-    if sys.platform != "darwin":
-        raise ValueError("This installer supports macOS only; Windows must not reuse Mac paths or report success. See docs/LEAK-PROTECTION.md")
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=['inspect', 'init', 'prepare', 'apply', 'rollback', 'check'])
     parser.add_argument('--verge-dir', type=Path, default=DEFAULT_DIR)
     parser.add_argument('--settings', type=Path, default=ROOT / '.private/settings.json')
     parser.add_argument('--plan', type=Path, default=ROOT / '.private/plan')
-    parser.add_argument('--mihomo', type=Path, default=Path('/Applications/Clash Verge.app/Contents/MacOS/verge-mihomo'))
+    parser.add_argument('--mihomo', type=Path, default=default_mihomo())
+    parser.add_argument('--enable-tun', action='store_true', help='Explicitly enable Windows TUN in candidate; requires Verge service approval')
     parser.add_argument('--residential-uid'); parser.add_argument('--ordinary-uid')
     parser.add_argument('--node'); parser.add_argument('--expected-ip')
+    parser.add_argument('--claude-path', action='append', help='Reviewed actual path if process discovery is unavailable')
+    parser.add_argument('--codex-path', action='append', help='Reviewed actual path if process discovery is unavailable')
     a = parser.parse_args()
-    require_macos()
+    require_platform()
     a.verge_dir = a.verge_dir.resolve(); a.plan = a.plan.resolve()
+    if a.command == 'prepare' and (a.mihomo is None or not a.mihomo.is_file()):
+        raise ValueError('Locate installed verge-mihomo.exe and pass --mihomo; no binary downloaded automatically')
     os.umask(0o077)
     if a.command == 'inspect': inspect(a.verge_dir)
     elif a.command == 'init': init_settings(a)

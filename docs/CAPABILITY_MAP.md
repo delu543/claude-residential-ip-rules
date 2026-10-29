@@ -15,3 +15,11 @@
 | LuLu / 广告过滤 / 系统时区修改 | removed | 本仓库不包含 |
 
 相对源配置的变化：普通外网从部分亚洲地区优先统一到美国优先及其他普通地区备用；不再发布源机器硬编码路径、固定IP和供应商节点DNS；缺失住宅入口改成可编译的拒绝节点；提供生成/备份/回滚工具。发布本身不会修改运行配置；目标电脑需单独实施与验收。
+
+## Windows 新增能力
+
+- active：APPDATA/实际进程盘点、named pipe控制、跨平台规则生成与回退。
+- active：Windows TUN严格路由、DNS四查询审计、Chrome/Edge分开写官方政策。
+- active：支持版本Desktop的HKCU代理、原生Code设置、阶段式配置和回执。
+- experimental：目标Windows完整浏览器/客户端/服务联调（需现场验收）；WSL/容器未覆盖。
+- changed：Mac-only入口改为平台分派；原Mac工作流、单住宅无备用及数据保留不变。
