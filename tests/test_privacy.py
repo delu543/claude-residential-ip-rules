@@ -46,3 +46,9 @@ class BrowserSelectionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'requires verified'):bp.main()
             apply.assert_not_called()
         bp.KEY='WebRtcIPHandling';bp.VALUE='disable_non_proxied_udp'
+    def test_dns_doh_unchanged_if_real_query_audit_fails(self):
+        tun={'enable':True,'auto-route':True,'strict-route':True}
+        with patch.object(bp.sys,'argv',['browser_privacy.py','apply','--policy','dns']),patch.object(bp.sys,'platform','win32'),patch('windows_policy.machine_present',return_value=False),patch.object(manage,'read',return_value={}),patch.object(manage,'preflight'),patch.object(manage,'api',return_value={'tun':tun}),patch('windows_audit.collect',return_value={'checks':{'dnsSamplesCaptured':False}}),patch.object(bp,'apply') as apply:
+            with self.assertRaisesRegex(ValueError,'not captured'):bp.main()
+            apply.assert_not_called()
+        bp.KEY='WebRtcIPHandling';bp.VALUE='disable_non_proxied_udp'

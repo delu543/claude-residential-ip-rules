@@ -92,6 +92,10 @@ def main():
         tun=api(o,'/configs').get('tun',{})
         if not tun.get('enable') or not tun.get('auto-route') or (sys.platform=='win32' and not tun.get('strict-route')):
             raise ValueError('DNS policy requires verified active TUN, auto-route and Windows strict-route first')
+        if sys.platform=='win32':
+            from windows_audit import collect
+            if not all(collect(o)['checks'].values()):
+                raise ValueError('Windows DNS queries are not captured; leave browser DoH unchanged and repair TUN first')
         print('Browser DoH will defer to the system/TUN resolver. Test DNS after apply; do not claim protection if Clash is off.')
     if a.command=='check': print(json.dumps({KEY:read_policy(),'effectiveBrowserVerified':False}))
     elif a.command=='apply': apply(a.backup)
