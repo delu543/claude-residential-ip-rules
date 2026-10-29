@@ -1,95 +1,96 @@
-# Windows 10/11：完整实施入口
+# Windows + Chrome：先保持联网，再分阶段配置
 
-本流程给在**目标 Windows 本机**运行的 Codex 使用。不是下载仓库就自动获得作者的订阅/IP，也不能自动批准 UAC、绕过企业政策、解除账号暂停。仓库提供自动配置、验证脚本和回退；最终需要目标机浏览器/客户端验收。原生 Windows 与 WSL、远程 SSH、Docker 是不同网络环境，不能把本机通过算成它们通过。
+目标电脑由本机Codex执行。**不要先开TUN来安装本仓库。** 系统代理和TUN是不同接管方式；系统代理可用、TUN不可用时，先保留能联网的系统代理。无需改动另一台正常电脑。只有目标电脑的诊断能确认其故障原因。
 
-## 自动执行的范围
+先读 [通用化与个人参数](PORTABILITY.md) 和 [客户端边界](CLIENTS.md)。本仓库不提供订阅、住宅IP或账号，不复制作者的地址和路径。默认Chrome，不改Edge。
 
-- 两份订阅合并：住宅 profile 为基础，普通订阅以 provider 注入；只有 Claude/专用端口住宅，其他外网普通美国优先再其他地区，国内直连。
-- Windows 路径按实际进程读取；不把所有 node.exe、python.exe 或 chrome.exe 归住宅。版本更新导致路径变化后重新盘点。
-- 本机 Mihomo named pipe 热加载，不新增 LAN 控制端口、不打印订阅/secret。
-- Windows TUN 已开启时补齐 auto-route、strict-route 和 UDP/TCP 53 接管、fake-ip。TUN 原本关闭时，仅在明确使用 `--enable-tun` 后纳入候选；服务/UAC仍须系统批准。
-- Claude Desktop 官方 `egressProxyUrl` 用户政策固定17897，清除优先级更高的PAC键；版本和数字签名检查，遇机器策略冲突停止。
-- Claude Code 用户 settings 的代理变量，专用启动器先做固定出口检查。保留其他键，不修改全系统代理环境变量。
-- Chrome WebRTC 政策；可选 Edge 使用不同的正式键。浏览器 DoH 可交给已验证工作的 TUN DNS，不把整个浏览器改成住宅。
-- 每阶段私有备份、回读、冲突检测、可恢复记录。不会杀进程或删除会话。
+## 0. 前置网络检查，任何写入之前
 
-## 1. 环境与身份盘点
-
-使用原生 PowerShell、Python 3.9+、Node.js 18+、Windows curl.exe。Clash Verge Rev及其服务需已安装；本仓库不自动下载安装程序或升级内核。参考语义基线 Mihomo v1.19.15，目标版本必须再跑语法测试。
+使用原生Windows PowerShell/Python，不在WSL。要求已安装Clash Verge Rev、Node.js 18+、Python 3.9+和curl.exe。内核参考语义基线v1.19.15，实际版本仍要语法验收；本仓库不自动更新内核/安装驱动/禁用安全功能。
 
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe scripts/manage.py inspect
+.\.venv\Scripts\python.exe scripts/bootstrap.py --verge-dir "实际Verge配置目录"
+.\.venv\Scripts\python.exe scripts/manage.py inspect --verge-dir "实际Verge配置目录"
 ```
 
-默认配置目录来自 `%APPDATA%\io.github.clash-verge-rev.clash-verge-rev`；便携或自定义目录用 `--verge-dir` 指定**在 Verge 中打开配置目录后确认的路径**。`inspect`读取当前订阅与正在运行的 Claude/Codex 绝对路径；未运行/无权限读取时，不猜测，先确认实际安装文件，再补私有设置。不要把 `.private` 存在共享目录或上传到云端；Windows权限继承用户目录ACL，Unix的0600并非Windows ACL保证。
+默认目录从APPDATA确定；便携版用Verge“打开配置目录”确认后传参数。bootstrap只读记录网卡、默认路由、DNS、Verge服务与系统代理设置；通过普通HTTP/mixed本机端口做一个小型连通性请求。结果只存`.private/bootstrap.json`，不要上传访问/设备信息。
 
-记录实际 Verge、Mihomo、Claude、Chrome/Edge 版本和签名；核对当前 profile 的全局及局部脚本执行顺序和重要自定义规则。候选会重建规则/组/DNS策略，不能覆盖未审阅的企业内网规则。
+- 系统代理可用且TUN关闭：按下文继续。
+- 当前TUN已开启且一切正常：保留现状，不为“标准化”反复开关，也不要运行要求TUN关闭的trial。
+- 开TUN整机不通、关TUN系统代理正常：在目标机恢复已知可用模式后继续。此时TUN不是必需步骤，先完成客户端显式代理和Chrome WebRTC。
+- 系统代理本身也不通：先查节点、套餐、监听端口、控制接口和服务。不能用打开TUN来掩盖未完成的基线检查。
 
-确定两份套餐身份和固定住宅入口后，用独立 Mihomo（TUN关闭、备用端口）验证预期公网IP。不能从节点名称/浏览器普通出口猜固定住宅IP。正常运行的 Claude 要保留；**客户端写入阶段才需要保存工作并正常退出**。
+只有注册表系统代理开关还不够，真实HTTP必须可达。Codex的实际连接仍需观察；检查不表示所有应用已联网。bootstrap失败不写配置、不关闭DoH、不启用TUN。
+
+## 1. 从个人配置生成参数
+
+明确两份订阅身份、固定住宅节点和已测量的住宅公网IP。国家默认US，可`--country`改为已批准的实际国家；不能凭节点名认定。专用端口自动选，所有后续工具引用私有设置中的同一端口。
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/manage.py init --residential-uid RES_UID --ordinary-uid NORMAL_UID --node "固定住宅节点的真实名称" --expected-ip "已验证的住宅出口IP"
+.\.venv\Scripts\python.exe scripts/manage.py init --residential-uid RES_UID --ordinary-uid NORMAL_UID --node "你的固定住宅节点名" --expected-ip "已验证公网IP" --country US
 ```
 
-如果TUN原本未开启而用户同意启用，加`--enable-tun`；这会影响系统路由，必须将影响纳入候选审阅。切勿以全局代理模式代替规则模式。
+自定义配置目录时init也传`--verge-dir`。应用未运行/路径未发现时补真实`--claude-path`；Codex不是必装依赖。只用网页选`--scope domains-only`，不得称全客户端保护。不同地区/本地订阅/DNS参数见PORTABILITY.md。
 
-## 2. 准备、隔离验收、应用
-
-在 `.private/settings.json` 确认 `platform=win32`、实际 `apiPipe`、两个真实进程路径列表、固定四元组和出口。普通provider不得含住宅。不要手工将`apiPipe`设成远程管道，不暴露无认证的TCP API。`windowsTun=true`仅表示已明确选择启用TUN；服务尚未授权时不能报就绪。
+## 2. 自动配置系统代理阶段
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/windows_setup.py prepare --exe "C:\实际安装路径\Claude.exe" --mihomo "C:\实际安装路径\verge-mihomo.exe"
-# 本机假代理回归，不使用住宅订阅、不关闭主Clash：
-.\.venv\Scripts\python.exe tests/integration.py --mihomo "C:\实际安装路径\verge-mihomo.exe"
-# 审阅 .private/windows-plan 后，保存工作并正常退出Claude；不退出Clash。
+.\.venv\Scripts\python.exe scripts/windows_setup.py prepare --exe "实际Claude.exe路径" --mihomo "实际verge-mihomo.exe路径"
+.\.venv\Scripts\python.exe tests/integration.py --mihomo "实际verge-mihomo.exe路径"
+# 审阅候选。到写客户端设置时才保存工作、正常退出Claude，不退出Clash。
 .\.venv\Scripts\python.exe scripts/windows_setup.py apply
 .\.venv\Scripts\python.exe scripts/windows_setup.py check
 ```
 
-`prepare`默认Chrome；若实际使用Edge，在prepare时加`--browsers chrome edge`（仅选实际使用者）。自定义`--plan`路径后每条命令都传同一plan。apply按准备时保存的步骤执行，依次配置路由、Desktop、Code、浏览器政策；失败立即停在该步骤，成功步骤保留在workflow.json，不假称所有阶段成功。不会自动切换住宅节点或改变公网IP。
+仅原生Code用`prepare --clients code`；只配置路由和浏览器用空`--clients`；Desktop需要实际exe。默认Chrome，可选其他浏览器需明确指定。自定义plan每次命令传同一`--plan`。
 
-Claude策略仅写`HKCU\SOFTWARE\Policies\Claude`两个网络键，不改账户、推理提供方、证书或时区。存在HKLM机器政策时先停，由管理员审阅有效源；不覆盖管理政策。受支持版本至少1.44121.1，但版本/签名检查也不能替代客户端日志和实际连接验收。官方说明主要在Desktop网络配置文档中，未知发行版应停在适配边界。
+阶段内容：
 
-原生Code可以从检查启动器启动：
+1. 再次确认现有系统代理联网，生成并用实际内核检查候选。
+2. 写持久分流和运行配置，用本地named pipe热加载；住宅/普通连通性失败则恢复旧配置。保留当前TUN状态，不强制打开。
+3. 受支持Claude Desktop通过官方HKCU固定HTTP代理，清除覆盖它的PAC；核验版本至少1.44121.1和签名，机器HKLM政策冲突时停止。原生Code写代理环境，保留其他设置。
+4. Chrome写WebRtcIPHandling=disable_non_proxied_udp。用户在chrome://policy重新加载，实际跑STUN IPv4/IPv6测试。
+5. 保留Chrome原来的DoH和系统DNS设置。此阶段只声明系统代理/显式代理和已实测WebRTC，不声明全系统DNS强接管。
 
-```powershell
-.\.venv\Scripts\python.exe scripts/clients.py code --binary "C:\实际安装路径\claude.exe" -- --help
-```
+没有强制杀进程、修改时区、安装证书、启用LuLu或把全部Chrome走住宅。代码脚本不强制TUN=true，避免用户关掉后又被脚本自动开启。
 
-不要把`.cmd`/`.ps1`包装器或WSL路径冒充本机原生exe。npm安装共享Node的情况需逐项适配，不能给所有Node放住宅。项目级/托管Code设置可能覆盖用户代理，必须在实际项目验证。
+Code检查启动器：`scripts/clients.py code --binary "实际原生claude.exe" -- --help`。WSL、共享Node、远程容器需要单独适配，不把全部Node/Python流量归住宅。
 
-## 3. DNS与WebRTC必须分层验收
+## 3. TUN仅作为后续可选验收，有本地恢复进程
 
-`windows_setup.py check`检查真实内核运行模式、TUN/auto-route/strict-route、固定出口，并对claude.ai执行系统/显式外部DNS的UDP/TCP四种查询；预期fake-IP。保存`.private/windows-plan/audit.json`，只写本地，不上传访问记录。失败不能跳过并称全部完成。
-
-浏览器：
-
-1. Chrome在`chrome://policy`重新加载，`WebRtcIPHandling=disable_non_proxied_udp`状态正常。Edge使用`WebRtcLocalhostIpHandling`同值，需要正常重启浏览器；个人微软账号配置可能不适用，必须看策略状态和STUN，必要时选Chrome。已有企业策略、URL覆盖规则/扩展冲突先查清，不能仅看注册表。
-2. DNS阶段设置`DnsOverHttpsMode=off`，**只有固定出口检查和TUN自动/严格路由通过后才执行**，让浏览器使用系统/TUN分域解析。关闭浏览器DoH本身不是防泄露；Clash/TUN退出后仍可能回到系统DNS，所以不能把它说成独立防火墙。回退时先恢复浏览器DNS政策，再恢复路由。
-3. 用实际浏览器运行国内/海外STUN测试，确认无本地公网IPv4/IPv6暴露；再用DNS测试页检查解析器。浏览器普通HTTP出口仍为普通订阅，不要求与住宅相同。全绿仅证明本次检测样本，不证明未来所有请求。
-4. 物理网卡DNS指向局域网路由器时，TUN的普通劫持可能覆盖不到；先看Get-DnsClientServerAddress和四项查询结果。脚本不盲目更改企业DNS、禁IPv6或全系统阻断53。发现LAN DNS/加密DNS旁路，需要根据目标机适配再验收，不能忽略。
-5. Windows多网卡解析由strict-route补强；虚拟机、企业VPN、虚拟交换机有兼容性风险。检查其网络，出现异常先按回退流程恢复，不叠加多个过滤器。
-
-DNS策略：Claude域名→住宅DoH；普通外网→普通DoH；国内/节点引导DNS按需直连。远端节点可能自行解析目标，取决于服务商；递归解析器IP不必等于出口IP。
-
-## 4. 最终验收清单
-
-Codex应保存配置层、系统层、浏览器层、客户端层四份结果：
-
-- Claude页面、Code请求、下载和工具分别观察真实进程/链；只有已观察或显式代理遵从的请求可算通过。
-- 普通外网/Codex/ChatGPT走普通provider，国内DIRECT；住宅计费只覆盖Claude相关捕获请求。
-- 住宅失败不换节点不直连、普通US失效用其他普通地区、全部普通失效拒绝、监听消失请求失败，用隔离测试验收。
-- 桌面主进程、更新器、沙箱、共享Node/MCP、IPv6、WSL分别列已测/未测；不把浏览器全绿当作全部客户端强隔离。
-- 登录验证和账号停用分别处理。不要反复注册、更换地区来代替官方申诉；本配置不保证账号不被停用。
-
-## 5. 恢复与中断
+只有用户需要TUN全面接管、系统代理基线稳定且允许短时测试时，在目标Windows执行：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/windows_setup.py rollback
+.\.venv\Scripts\python.exe scripts/tun_trial.py run --mihomo "实际verge-mihomo.exe路径" --seconds 60
 ```
 
-按逆序恢复本次写过的浏览器策略、Code、Desktop、路由；检测后续修改则拒绝覆盖。备份保留。若workflow.json有pending，说明某步失败或被中断：先读取该步私有回执和实际状态（manage应用失败自带回退），确认未写/已恢复/成功后再由Codex只修该步状态，不能重复重跑或删除备份。每个子工具都有独立rollback，可依据其回执恢复。策略写入前若没有改动的必要则不生成备份，不应回退用户原有保护。
+该命令拒绝在Mac或当前TUN已经开启时运行。使用独立临时目录保存基线和候选，不改浏览器、系统代理或持久profile脚本。先启动并确认本地恢复进程，再临时加载TUN候选。恢复进程不依赖Codex连接或互联网，收到请求或达到期限后通过本机控制接口恢复基线；主测试进程退出后它仍可运行。**成功也会恢复，最终TUN保持关闭，不会把试验默认为长期启用。**
 
-测试层级：Linux/macOS单元与集成、Windows CI的真实命名管道/隔离注册表测试，**均不能替代目标Windows的Clash、管理员服务、浏览器、Claude实机验收**。安装收尾不得把`fullyVerified:false`改成true来跳过未完成检查。
+测试检查固定住宅、普通线路、非显式代理HTTP、系统/显式DNS的UDP/TCP请求。检查失败保留诊断，不自动换住宅/扩大直连。每次新试验用新的`--plan`目录。正常网络上的开发仍可能受短暂TUN切换影响，所以不能在未获目标用户允许时运行。
+
+恢复不是对故障OS/死亡内核的绝对保证：若服务崩溃、管道消失或权限拒绝，本地恢复也可能失败；`restore-error.json`会记录，用户用Verge切回系统代理。手动恢复命令为`tun_trial.py restore --plan 对应试验目录`，不需要联网。
+
+诊断方向：服务/UAC权限、其他VPN/网络扩展、虚拟交换机、物理接口选路、多网卡DNS、LAN DNS不可被普通劫持、特定协议栈兼容性。只根据报告修根因，不同时换节点/DNS/MTU/协议栈猜测，不自动关闭系统防火墙。
+
+## 4. 需要长期TUN及DNS防泄露时的收尾
+
+trial通过后，目标Codex先审阅其结果，再按用户选择在Verge正常开启TUN并配置已验证的auto-route、strict-route、UDP/TCP53接管及fake-IP。私有`windowsDnsProtection=true`可让持久脚本在TUN**已经开启时**补齐这些参数；它不会主动开启TUN。重新prepare时用新plan，保持变更证据和回退。Verge服务批准/UAC仍由用户完成。
+
+```powershell
+.\.venv\Scripts\python.exe scripts/windows_setup.py check --full
+.\.venv\Scripts\python.exe scripts/browser_privacy.py apply --policy dns
+```
+
+`--full`才要求DNS全面检查；浏览器DNS命令在真实UDP/TCP查询已通过后才设置DnsOverHttpsMode=off，将解析交给系统/TUN。不满足时原设置不变。关闭DoH本身不是防泄露；Clash退出后也不具备独立系统隔离。
+
+实际Chrome测试：WebRTC不出现本地公网IPv4/IPv6，DNS观察无意外本地解析，HTTP出口仍按普通订阅。Claude域名DNS经住宅DoH，普通外网经普通DoH，国内和节点引导独立。服务商远端解析不能仅靠本机配置保证。LAN DNS、第三方DoH、IPv6和企业网须单独检查。
+
+## 5. 恢复与最终交付
+
+`windows_setup.py rollback`按已记录步骤逆序恢复Chrome WebRTC、Code、Desktop、路由。可选DNS步骤独立执行过时，**先**`browser_privacy.py rollback --policy dns`，再恢复路由；TUN trial无长期变更，使用其独立恢复证据。
+
+若workflow.json有pending，先检查该步回执和实际状态，确认未写/已恢复/已成功后再修正状态，不盲目重跑或覆盖备份。所有备份保留在用户目录，Windows依赖用户目录ACL，不声称Unix0600就是Windows权限。
+
+交付分开记录：基线联网、分流连接链、Chrome有效政策/WebRTC、可选TUN和DNS、客户端/工具下载、隔离故障。未做TUN不伪称全系统DNS验收通过，CI不等于目标机实测，网络设置不保证不封号或解除停用。

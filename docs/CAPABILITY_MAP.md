@@ -23,3 +23,11 @@
 - active：支持版本Desktop的HKCU代理、原生Code设置、阶段式配置和回执。
 - experimental：目标Windows完整浏览器/客户端/服务联调（需现场验收）；WSL/容器未覆盖。
 - changed：Mac-only入口改为平台分派；原Mac工作流、单住宅无备用及数据保留不变。
+
+## 通用化及联网优先（取代前一版TUN前置要求）
+
+- active：空个人字段模板、本机自动端口/冲突检测、协议/入口本地读取、普通remote/file来源。
+- active：地区/DNS可配置；缺少Codex不阻断；domain-only显式范围，空路径不生成全匹配正则。
+- replaced：Windows强制TUN安装前提 → 系统代理基线优先；默认不改Chrome DoH。
+- active：可选TUN临时试验与独立本地恢复进程，成功也恢复基线；这是恢复尝试，不是OS故障下的绝对保证。
+- active：真实机器状态不因文档截图而修改；更新仓库不等于更新正在运行的网络。

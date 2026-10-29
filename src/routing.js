@@ -1,7 +1,9 @@
 // Original routing policy. Render OPTIONS locally; never publish rendered scripts.
 function build(config, o) {
   const fixed = '住宅固定节点', claude = 'Claude 固定出口';
-  const normal = '普通外网（美国优先）', us = '普通·美国', other = '普通·其他地区';
+  const normal = o.preferredPattern ? '普通外网（优先地区）' : '普通外网（美国优先）';
+  const us = o.preferredPattern ? '普通·优先地区' : '普通·美国', other = '普通·其他地区';
+  const preferredPattern = o.preferredPattern || o.usPattern;
   const gpt = o.chatgptResidential === true ? 'ChatGPT 住宅出口' : 'ChatGPT 普通出口';
   const provider = 'ordinary-only';
   const clone = x => JSON.parse(JSON.stringify(x));
@@ -22,8 +24,8 @@ function build(config, o) {
     {name: gpt, type: 'select', proxies: [o.chatgptResidential === true ? fixed : normal]},
     // REJECT is first so that an all-dead set never resolves to DIRECT/COMPATIBLE.
     {name: normal, ...health, proxies: ['REJECT', us, other]},
-    {name: us, ...health, proxies: ['REJECT'], use: [provider], filter: o.usPattern},
-    {name: other, ...health, proxies: ['REJECT'], use: [provider], 'exclude-filter': o.usPattern}
+    {name: us, ...health, proxies: ['REJECT'], use: [provider], filter: preferredPattern},
+    {name: other, ...health, proxies: ['REJECT'], use: [provider], 'exclude-filter': preferredPattern}
   ];
   config.mode = 'rule';
   config['find-process-mode'] = 'always';
@@ -32,39 +34,45 @@ function build(config, o) {
     // Directory entries carry a separator; executable entries match exactly.
     return escaped + (/[\\/]$/.test(p) ? '' : '$');
   }).join('|') + ')';
-  const cp = pathPattern(o.claudePaths), xp = pathPattern(o.codexPaths);
+  const cp = o.claudePaths?.length ? pathPattern(o.claudePaths) : null;
+  const xp = o.codexPaths?.length ? pathPattern(o.codexPaths) : null;
+  const directCountries = o.directCountries || ['CN'];
+  const directGeosites = o.directGeosites || (directCountries.includes('CN') ? ['cn'] : []);
   const claudeDomains = ['claude.ai', 'claude.com', 'anthropic.com', 'claudeusercontent.com'];
   const openaiDomains = ['chatgpt.com', 'openai.com', 'oaistatic.com', 'oaiusercontent.com'];
   const hosts = '(OR,(' + openaiDomains.map(d => `(DOMAIN-SUFFIX,${d})`).join(',') + '))';
   config.rules = [
-    `AND,((NETWORK,udp),(PROCESS-PATH-REGEX,${cp})),REJECT`,
-    `AND,((PROCESS-PATH-REGEX,${cp}),(NOT,((GEOIP,private)))),${claude}`,
+    ...(cp ? [`AND,((NETWORK,udp),(PROCESS-PATH-REGEX,${cp})),REJECT`,
+    `AND,((PROCESS-PATH-REGEX,${cp}),(NOT,((GEOIP,private)))),${claude}`] : []),
     ...claudeDomains.map(d => `DOMAIN-SUFFIX,${d},${claude}`),
     'GEOSITE,PRIVATE,DIRECT', 'DOMAIN-SUFFIX,localhost,DIRECT', 'DOMAIN-SUFFIX,local,DIRECT',
     'GEOIP,PRIVATE,DIRECT,no-resolve',
-    `AND,((PROCESS-PATH-REGEX,${xp}),${hosts}),${normal}`,
+    ...(xp ? [`AND,((PROCESS-PATH-REGEX,${xp}),${hosts}),${normal}`] : []),
     ...openaiDomains.map(d => `DOMAIN-SUFFIX,${d},${gpt}`),
     ...['GOOGLE', 'YOUTUBE', 'TELEGRAM', 'NETFLIX'].map(s => `GEOSITE,${s},${normal}`),
-    ...['bilibili.com', 'bilivideo.com', 'douyu.com', 'douyucdn.cn', 'gov.cn'].map(d => `DOMAIN-SUFFIX,${d},DIRECT`),
-    `GEOSITE,geolocation-!cn,${normal}`, 'GEOSITE,CN,DIRECT', 'GEOIP,CN,DIRECT,no-resolve', `MATCH,${normal}`
+    ...(o.directDomains || (directCountries.includes('CN') ? ['bilibili.com','bilivideo.com','douyu.com','douyucdn.cn','gov.cn'] : [])).map(d => `DOMAIN-SUFFIX,${d},DIRECT`),
+    ...(directCountries.includes('CN') ? [`GEOSITE,geolocation-!cn,${normal}`] : []),
+    ...directGeosites.map(t => `GEOSITE,${t.toUpperCase()},DIRECT`),
+    ...directCountries.map(c => `GEOIP,${c},DIRECT,no-resolve`), `MATCH,${normal}`
   ];
   const existing = config.listeners || [];
   if (existing.some(l => l.port === o.port && l.name !== 'claude-only-http'))
     throw new Error('Dedicated port conflicts with another listener');
   config.listeners = [...existing.filter(l => l.name !== 'claude-only-http'),
     {name: 'claude-only-http', type: 'http', listen: '127.0.0.1', port: o.port, proxy: fixed}];
-  const direct = ['https://dns.alidns.com/dns-query#DIRECT', 'https://doh.pub/dns-query#DIRECT'];
+  const direct = (o.directResolvers || ['https://dns.alidns.com/dns-query','https://doh.pub/dns-query']).map(s => s.endsWith('#DIRECT') ? s : s + '#DIRECT');
+  const upstream = o.proxiedResolvers || ['https://1.1.1.1/dns-query','https://8.8.8.8/dns-query'];
   config.dns = {...(config.dns || {}), enable: true, 'prefer-h3': false, 'respect-rules': false,
-    'default-nameserver': ['223.5.5.5', '119.29.29.29'],
+    'default-nameserver': clone(o.defaultNameservers || ['223.5.5.5', '119.29.29.29']),
     'proxy-server-nameserver': clone(o.proxyServerNameservers),
     'direct-nameserver': direct, 'direct-nameserver-follow-policy': false,
-    nameserver: [`https://1.1.1.1/dns-query#${normal}`, `https://8.8.8.8/dns-query#${normal}`], fallback: [],
-    'nameserver-policy': {'geosite:cn,private': direct,
-      ...Object.fromEntries(claudeDomains.map(d => ['+.' + d, [`https://1.1.1.1/dns-query#${claude}`]])),
-      ...Object.fromEntries(openaiDomains.map(d => ['+.' + d, [`https://1.1.1.1/dns-query#${o.chatgptResidential === true ? claude : normal}`]]))}};
+    nameserver: upstream.map(s => `${s}#${normal}`), fallback: [],
+    'nameserver-policy': {'geosite:private': direct, ...Object.fromEntries(directGeosites.map(t => ['geosite:' + t, direct])),
+      ...Object.fromEntries(claudeDomains.map(d => ['+.' + d, upstream.map(s => `${s}#${claude}`)])),
+      ...Object.fromEntries(openaiDomains.map(d => ['+.' + d, upstream.map(s => `${s}#${o.chatgptResidential === true ? claude : normal}`)]))}};
   if (o.platform === 'win32') {
-    if (o.windowsTun === true) config.tun = {...(config.tun || {}), enable:true, 'auto-route':true, 'auto-detect-interface':true};
-    if (config.tun?.enable) {
+    // Never force TUN on from a profile script: GUI off must stay off.
+    if (config.tun?.enable && o.windowsDnsProtection === true) {
       config.tun['auto-route'] = true;
       config.tun['strict-route'] = true;
       config.dns['enhanced-mode'] = 'fake-ip';

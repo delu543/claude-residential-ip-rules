@@ -62,7 +62,7 @@ Windows 已增加自动配置入口，见 [WINDOWS.md](WINDOWS.md)。先读取�
 
 Chrome 使用 WebRtcIPHandling；Edge 使用 WebRtcLocalhostIpHandling，后者需正常重启，个人微软账号配置可能不适用，必须实测。不能只写注册表就宣称生效。Windows TUN 使用 auto-route、strict-route、UDP/TCP 53 和 fake-IP；局域网 DNS、加密 DNS、IPv6 仍须按目标机验收。
 
-默认 WebRTC 命令不改 DNS。独立 `browser_privacy.py --policy dns` 在固定出口和 TUN 预检通过后设置 DnsOverHttpsMode=off，将浏览器解析交给系统/TUN，再做 DNS 查询测试。关闭 DoH 本身不是防泄露措施，Clash/TUN 退出后也不具备全系统 DNS 强制隔离。Windows 统一流程包含该阶段，回退先恢复浏览器 DNS 政策再恢复路由。
+默认 WebRTC 命令不改 DNS。独立 `browser_privacy.py --policy dns` 在固定出口和 TUN 预检通过后设置 DnsOverHttpsMode=off，将浏览器解析交给系统/TUN，再做 DNS 查询测试。关闭 DoH 本身不是防泄露措施，Clash/TUN 退出后也不具备全系统 DNS 强制隔离。Windows默认系统代理阶段不包含DNS政策改动；只有后续TUN验收通过才单独执行。回退先恢复浏览器DNS政策再恢复路由。
 
 ## 官方依据
 

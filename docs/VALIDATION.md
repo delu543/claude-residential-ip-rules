@@ -35,3 +35,11 @@
 - CI扩展到Windows/macOS/Linux；目标Windows的Verge服务/TUN、Chrome政策加载、STUN/DNS和Claude真实连接仍需现场验收。任何CI通过都不表示账号恢复或全进程强隔离。
 
 Changed Existing Capabilities：安装器从Mac-only扩展平台分派；Windows明确选择TUN时可启用，已开启时增加strict-route；Chrome的DNS政策只在已验收的TUN前提下改变。Mac已有配置不自动更新；本次未修改作者运行网络。
+
+## 通用化与TUN安装顺序修订
+
+本节取代前版“初始化可直接启用TUN”的默认流程：先检查可用系统代理，默认不启用TUN/不改Chrome DoH。TUN改为可选独立试验，并始终恢复基线；Windows独立进程与假内核命名管道回归验证超时恢复路径，实际网络驱动/远程设备根因仍须现场检查。
+
+回归覆盖：端口占用与复用、普通本地订阅、非VLESS节点、非US出口国家、无Codex、domain-only空正则防护、地区/DNS个性化、Chrome默认无DNS改动、基线失败停止、超时恢复与备份冲突。原住宅失败拒绝/普通跨地区fallback继续用隔离Mihomo验证。模板保留空个人字段，不能直接应用。
+
+Changed Existing Capabilities：端口由默认常量改为自动选择且稳定保存；Windows的TUN/DNS全面验收从安装必需改为后续可选；固定住宅不自动换节点、数据保留和逆序回退不变。

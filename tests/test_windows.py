@@ -24,6 +24,7 @@ class WindowsTests(unittest.TestCase):
 
     def test_drive_paths_validated_no_blanket_node(self):
         o=manage.read(manage.ROOT/'examples/settings.example.json')
+        o.pop('_template',None);o.update(port=19080,expectedIp='192.0.2.20',country='US',residential={'type':'vless'})
         o.update(claudePaths=[r'C:\Users\Tester\Claude\claude.exe'],codexPaths=[r'C:\Apps\Codex\codex.exe'])
         o['ordinaryProvider']['url']='https://ordinary.example/sub'
         manage.validate_options(o)

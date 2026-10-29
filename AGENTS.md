@@ -2,7 +2,7 @@
 
 ## 目标与真实边界
 
-先读 README.md、docs/SETUP.md 和 docs/CLIENTS.md。只在用户授权的目标电脑操作。普通订阅和住宅订阅属于不同费用/路由边界，绝不互作备用。默认只有 Claude 住宅；ChatGPT/Codex 普通美国优先（ChatGPT 住宅仅显式 opt-in）。不要承诺住宅纯净、独享或不封号。
+先读 README.md、docs/PORTABILITY.md、docs/SETUP.md 和 docs/CLIENTS.md。只在用户授权的目标电脑操作。普通订阅和住宅订阅属于不同费用/路由边界，绝不互作备用。默认只有 Claude 住宅；ChatGPT/Codex 普通美国优先（ChatGPT 住宅仅显式 opt-in）。不要承诺住宅纯净、独享或不封号。
 
 ## 必须遵循的实施顺序
 
@@ -24,4 +24,6 @@
 
 读取 docs/LEAK-PROTECTION.md。不能只改 Clash 就宣称 Chrome WebRTC 已保护：必须核验浏览器生效策略及真实 STUN 测试。不要为了让检测 IP 相同把整个 Chrome 或 IP 检测域名改走住宅。浏览器策略影响网页音视频，需告知；其他应用不受该策略控制。Windows 按本机 APPDATA、实际进程及命名管道配置，Desktop 用官方 HKCU 政策；存在 HKLM 冲突就停。账号暂停与网络错误分开记录，不能保证反封禁。
 
-Windows 交付必须包含：版本与签名、阶段回执、TUN strict-route、UDP/TCP DNS 查询、Chrome/Edge 有效政策与 STUN、Claude 与普通连接链、隔离故障及回退。缺项明确未验收，不得把 CI 当目标机实测或修改 fullyVerified 字段伪造完成。不要关闭系统安全功能来消除安装错误。
+Windows 默认阶段交付包含：版本与签名、联网基线、阶段回执、Chrome 有效政策与 STUN、Claude 与普通连接链、隔离故障及回退。TUN/全面DNS是后续可选阶段：未选择时明确未验收；选择后要求 strict-route 与 UDP/TCP DNS 查询。不得为了补齐清单擅自启用TUN，不得把CI当目标机实测或修改fullyVerified字段伪造完成。
+
+通用化与联网优先：个人字段从目标机init生成，端口自动选；不得复制作者地址或将本机回环入口当住宅IP。Windows先运行bootstrap确认系统代理可用，不要求TUN。不要修改另一台正常设备。TUN只在后续授权试验中启用，先启动独立本地恢复进程，成功也恢复基线；不依赖Codex在线才能回退。默认不改Chrome DoH；全面DNS必须独立验收。明确套餐身份/固定出口，不能从节点名称猜付费归属。未安装Codex允许空路径；无Claude客户端时需显式domains-only范围，不能生成空进程正则。

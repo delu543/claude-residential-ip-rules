@@ -22,6 +22,7 @@ class SafetyTests(unittest.TestCase):
     def test_reject_unreviewed_settings(self):
         o=manage.read(manage.ROOT/'examples/settings.example.json')
         with self.assertRaises(ValueError): manage.validate_options(o)
+        o.pop('_template',None);o.update(port=19080,expectedIp='192.0.2.20',country='US',residential={'type':'vless'})
         o['ordinaryProvider']['url']='https://provider.example/sub'
         o['claudePaths']=['/Applications/Claude.app/'];manage.validate_options(o)
         o['proxyServerNameservers']=['https://resolver.example/dns-query#住宅']

@@ -4,6 +4,7 @@ const {build} = require('../src/routing.js');
 const options = require('../examples/settings.example.json');
 function fixture() {
   const o = structuredClone(options);
+  o.port=19080;o.residential={name:'fixture-node',server:'192.0.2.10',port:443,type:'vless'};
   o.claudePaths = ['/Applications/Claude.app/', '/Users/test/.local/share/claude/versions/'];
   o.codexPaths = ['/Applications/Codex.app/'];
   return {o, c: {proxies: [{...o.residential, uuid: 'fixture-only'}],
@@ -48,7 +49,7 @@ test('preserves TUN, other listener and fake IP exclusions; deterministic/idempo
 test('independent node DNS; residential domain DNS routed explicitly', () => {
   const {c,o}=fixture(),r=build(c,o);
   assert.deepEqual(r.dns['proxy-server-nameserver'],o.proxyServerNameservers);
-  assert.deepEqual(r.dns['nameserver-policy']['+.claude.ai'],['https://1.1.1.1/dns-query#Claude 固定出口']);
+  assert.deepEqual(r.dns['nameserver-policy']['+.claude.ai'],['https://1.1.1.1/dns-query#Claude 固定出口','https://8.8.8.8/dns-query#Claude 固定出口']);
 });
 test('port collision and unreviewed chain do not silently override', () => {
   const {c,o}=fixture(); c.listeners[0].port=o.port; assert.throws(()=>build(c,o),/conflicts/);
@@ -58,7 +59,7 @@ test('port collision and unreviewed chain do not silently override', () => {
 test('only Claude uses residential by default; ChatGPT opt-in remains explicit', () => {
   const {c,o}=fixture(); const r=build(c,o);
   assert.deepEqual(r['proxy-groups'][1].proxies,['普通外网（美国优先）']);
-  assert.deepEqual(r.dns['nameserver-policy']['+.openai.com'],['https://1.1.1.1/dns-query#普通外网（美国优先）']);
+  assert.deepEqual(r.dns['nameserver-policy']['+.openai.com'],['https://1.1.1.1/dns-query#普通外网（美国优先）','https://8.8.8.8/dns-query#普通外网（美国优先）']);
   o.chatgptResidential=true;const legacy=build(c,o);
   assert.deepEqual(legacy['proxy-groups'][1].proxies,['住宅固定节点']);
   assert.ok(legacy.rules.includes('DOMAIN-SUFFIX,chatgpt.com,ChatGPT 住宅出口'));
@@ -73,9 +74,22 @@ test('Windows paths escape backslashes, exact exe boundaries and case insensitiv
   const r=build(c,o);assert.ok(r.rules[0].includes('(?i)'));assert.ok(r.rules[0].includes('Claude\\.exe$'));
   assert.ok(!r.rules.join('\n').includes('PROCESS-NAME,node.exe'));
 });
-test('Windows TUN requires explicit enable opt-in, strict DNS when already on',()=>{
+test('Windows scripts never force TUN on; strict DNS is separate opt-in',()=>{
   const {c,o}=fixture();o.platform='win32';assert.equal(build(c,o).tun.enable,false);
-  o.windowsTun=true;const r=build(c,o);assert.equal(r.tun.enable,true);assert.equal(r.tun['strict-route'],true);
+  o.windowsTun=true;assert.equal(build(c,o).tun.enable,false);
+  c.tun.enable=true;o.windowsDnsProtection=true;const r=build(c,o);assert.equal(r.tun.enable,true);assert.equal(r.tun['strict-route'],true);
   assert.equal(r.tun['auto-route'],true);assert.equal(r.dns['enhanced-mode'],'fake-ip');
   assert.deepEqual(r.tun['dns-hijack'],['any:53','tcp://any:53']);assert.deepEqual(build(r,o),r);
+});
+test('domain-only scope never generates an empty catch-all process regex',()=>{
+  const {c,o}=fixture();o.claudePaths=[];o.codexPaths=[];
+  const r=build(c,o);assert.ok(!r.rules.some(x=>x.includes('PROCESS-PATH-REGEX')));
+  assert.ok(r.rules.includes('DOMAIN-SUFFIX,claude.ai,Claude 固定出口'));
+});
+test('personal regions and resolver choices replace US/CN assumptions',()=>{
+  const {c,o}=fixture();o.preferredPattern='Japan|JP';o.directCountries=['JP'];o.directGeosites=[];o.directDomains=['internal.example'];o.directResolvers=['9.9.9.9'];o.proxiedResolvers=['https://dns.example/dns-query'];
+  const r=build(c,o);assert.equal(r['proxy-groups'][3].filter,'Japan|JP');
+  assert.ok(r.rules.includes('GEOIP,JP,DIRECT,no-resolve'));assert.ok(!r.rules.some(x=>x.includes('GEOIP,CN')||x.includes('GEOSITE,CN')));
+  assert.deepEqual(r.dns['nameserver-policy']['+.claude.ai'],['https://dns.example/dns-query#Claude 固定出口']);
+  assert.deepEqual(r.dns['direct-nameserver'],['9.9.9.9#DIRECT']);
 });

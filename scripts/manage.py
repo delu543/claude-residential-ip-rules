@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import urllib.parse
+from adapt import choose_port, provider_options
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DIR = default_verge_dir()
@@ -72,17 +73,37 @@ def validate_options(o):
     ipaddress.ip_address(o['expectedIp'])
     if not isinstance(o['port'], int) or not 1024 <= o['port'] <= 65535:
         raise ValueError('Invalid dedicated port')
-    if not o['claudePaths'] or not o['codexPaths']:
-        raise ValueError('Inspect actual app paths first')
+    if not o['claudePaths'] and o.get('scope') != 'domains-only':
+        raise ValueError('Inspect Claude app paths or explicitly choose --scope domains-only; Codex installation is optional')
+    if o.get('_template'):
+        raise ValueError('Example template cannot be applied; initialize from local subscriptions')
+    if not re.fullmatch('[A-Z]{2}', o.get('country') or ''):
+        raise ValueError('Provide the approved egress country code')
     for p in o['claudePaths'] + o['codexPaths']:
         if not (p.startswith('/') or re.match(r'^[A-Za-z]:[\\/]', p)) or any(c in p for c in ',\n\r') or 'REPLACE' in p:
             raise ValueError('Invalid process path')
     p = o['ordinaryProvider']
-    url = urllib.parse.urlsplit(p['url'])
-    if p['type'] != 'http' or url.scheme not in ('http', 'https') or not url.hostname or url.hostname.endswith('.invalid'):
-        raise ValueError('A real ordinary subscription URL is required locally')
-    if p.get('proxy', 'DIRECT') != 'DIRECT':
-        raise ValueError('Subscription refresh must not borrow the residential group')
+    if p['type'] == 'http':
+        url = urllib.parse.urlsplit(p.get('url') or '')
+        if url.scheme not in ('http', 'https') or not url.hostname or url.hostname.endswith('.invalid'):
+            raise ValueError('A real ordinary subscription URL is required locally')
+        if p.get('proxy', 'DIRECT') != 'DIRECT':
+            raise ValueError('Subscription refresh must not borrow the residential group')
+    elif p['type'] == 'file':
+        if not Path(p.get('path','')).is_file():
+            raise ValueError('Ordinary local node file does not exist')
+    else:
+        raise ValueError('Unsupported ordinary source type')
+    for country in o.get('directCountries', ['CN']):
+        if not re.fullmatch('[A-Z]{2}',country): raise ValueError('Invalid direct country')
+    for key in ('directGeosites','directDomains'):
+        if any(not isinstance(x,str) or not re.fullmatch(r'[a-zA-Z0-9_.!@-]+',x) for x in o.get(key,[])):
+            raise ValueError('Invalid routing policy entry')
+    for key in ('directResolvers','defaultNameservers'):
+        if key in o and (not o[key] or any('#' in x and not x.endswith('#DIRECT') for x in o[key])):
+            raise ValueError('Direct/bootstrap DNS cannot depend on proxy groups')
+    if 'proxiedResolvers' in o and (not o['proxiedResolvers'] or any('#' in x for x in o['proxiedResolvers'])):
+        raise ValueError('Proxied DNS resolver URLs must not include a preselected group')
     if not o['proxyServerNameservers'] or any('#' in s and not s.endswith('#DIRECT') for s in o['proxyServerNameservers']):
         raise ValueError('Node bootstrap DNS must be independent of proxy groups')
     if o['residential']['type'] in ('direct', 'reject', 'compatible', 'pass'):
@@ -104,8 +125,9 @@ def discover_paths():
                     claude.append(str(app) + '/')
             except (OSError, ValueError):
                 continue
-    claude += [str(home / '.local/share/claude/versions') + '/',
-               str(home / 'Library/Caches/com.anthropic.claudefordesktop.ShipIt') + '/']
+    claude += [str(p) + '/' for p in (home / '.local/share/claude/versions', home / 'Library/Caches/com.anthropic.claudefordesktop.ShipIt') if p.is_dir()]
+    code = home / '.local/bin/claude'
+    if code.is_file(): claude.append(str(code.resolve()))
     return sorted(set(claude)), sorted(set(codex))
 
 def inspect(base):
@@ -116,6 +138,7 @@ def inspect(base):
             continue
         doc = read(profile_path(base, item))
         print(dump({'uid': item['uid'], 'name': item.get('name'),
+                    'sourceType': item.get('type'), 'providerOnly': bool(doc.get('proxy-providers')) and not bool(doc.get('proxies')),
                     'nodes': [{'name': p.get('name'), 'type': p.get('type')} for p in doc.get('proxies', [])]}))
     cp, xp = discover_paths()
     print(dump({'claudePaths': cp, 'codexPaths': xp}))
@@ -131,20 +154,40 @@ def init_settings(a):
         raise ValueError('Select one unambiguous residential node from inspect')
     node = candidates[0]
     o = read(ROOT / 'examples/settings.example.json')
+    o.pop('_template', None)
     o['residential'] = {k: node[k] for k in ('name', 'server', 'port', 'type')}
     o['expectedIp'] = a.expected_ip
-    o['ordinaryProvider']['url'] = items[a.ordinary_uid]['url']
+    ordinary_item = items[a.ordinary_uid]
+    if ordinary_item.get('url') and ordinary_item.get('url') == items[a.residential_uid].get('url'):
+        raise ValueError('Both profiles reference the same subscription; clarify billing roles first')
+    ordinary_path = profile_path(a.verge_dir, ordinary_item)
+    if not read(ordinary_path).get('proxies'):
+        raise ValueError('Ordinary provider-only source needs explicit adaptation; do not substitute a different subscription')
+    o['ordinaryProvider'] = provider_options(ordinary_item, ordinary_path, o['ordinaryProvider'])
     o['claudePaths'], o['codexPaths'] = discover_paths()
     if getattr(a, 'claude_path', None): o['claudePaths'] = a.claude_path
     if getattr(a, 'codex_path', None): o['codexPaths'] = a.codex_path
     # Preserve vendor-specific bootstrap resolvers when already configured.
     runtime = read(a.verge_dir / 'clash-verge.yaml')
+    o['port'] = choose_port(runtime, getattr(a,'port',None))
+    o['country'] = (getattr(a,'country',None) or 'US').upper()
+    o['scope'] = getattr(a,'scope','clients')
+    if getattr(a,'preferred_pattern',None): o['preferredPattern'] = a.preferred_pattern
+    countries = getattr(a,'direct_country',None)
+    if countries is not None:
+        o['directCountries'] = [] if countries==['NONE'] else [c.upper() for c in countries]
+        o['directGeosites'] = ['cn'] if 'CN' in o['directCountries'] else []
+        o['directDomains'] = []
+    dns = runtime.get('dns',{})
+    o['defaultNameservers'] = dns.get('default-nameserver') or ['1.1.1.1','8.8.8.8']
+    o['directResolvers'] = dns.get('direct-nameserver') or list(o['defaultNameservers'])
     o['proxyServerNameservers'] = runtime.get('dns', {}).get('proxy-server-nameserver') or o['proxyServerNameservers']
     o.update(controller_options(runtime))
     o['platform'] = sys.platform
-    o['windowsTun'] = bool(getattr(a, 'enable_tun', False))
-    if sys.platform == 'win32' and not runtime.get('tun', {}).get('enable') and not o['windowsTun']:
-        raise ValueError('Windows full coverage requires TUN: enable service/TUN in Verge or use --enable-tun after reviewing network impact')
+    o['windowsTun'] = False
+    o['windowsDnsProtection'] = False
+    if getattr(a,'enable_tun',False):
+        raise ValueError('Start with working system proxy. TUN must be tested separately with tun_trial.py, not enabled during initialization')
     o['residentialUid'] = a.residential_uid
     o['ordinaryUid'] = a.ordinary_uid
     validate_options(o)
@@ -159,8 +202,7 @@ def prepare(a):
     items = {i['uid']: i for i in profiles['items']}
     if o.get('platform', sys.platform) != sys.platform:
         raise ValueError('Settings belong to another OS; initialize locally')
-    if sys.platform == 'win32' and not read(a.verge_dir / 'clash-verge.yaml').get('tun', {}).get('enable') and not o.get('windowsTun'):
-        raise ValueError('TUN is off; cannot promise Windows DNS/process coverage')
+    choose_port(read(a.verge_dir / 'clash-verge.yaml'), o['port'])
     if profiles['current'] != o['residentialUid']:
         raise ValueError('Select the residential base profile in Clash Verge first')
     res = items[o['residentialUid']]
@@ -215,6 +257,7 @@ def preflight(o):
 
 def apply(a):
     p = read(a.plan / 'plan.json'); o = read(a.plan / 'settings.json')
+    if 'port' in o: choose_port(read(p['targets'][1]), o['port'])
     if digest(p['profileIndex']) != p['profileHash'] or [digest(t) for t in p['targets']] != p['before']:
         raise ValueError('Configuration changed since prepare; prepare a fresh plan')
     sources = [a.plan / 'routing.js', a.plan / 'runtime.json']
@@ -225,6 +268,10 @@ def apply(a):
             save(dst, src.read_bytes())
         api(o, '/configs?force=false', 'PUT', {'path': p['targets'][1]})
         preflight(o)
+        if o.get('platform') == 'win32':
+            from bootstrap import check
+            if not check(o,api(o,'/configs'))['ready']:
+                raise ValueError('Ordinary/system proxy failed after apply')
     except Exception:
         for i, dst in enumerate(p['targets']):
             save(dst, (a.plan / f'before-{i}').read_bytes())
@@ -252,7 +299,12 @@ def main():
     parser.add_argument('--settings', type=Path, default=ROOT / '.private/settings.json')
     parser.add_argument('--plan', type=Path, default=ROOT / '.private/plan')
     parser.add_argument('--mihomo', type=Path, default=default_mihomo())
-    parser.add_argument('--enable-tun', action='store_true', help='Explicitly enable Windows TUN in candidate; requires Verge service approval')
+    parser.add_argument('--enable-tun', action='store_true', help='Deprecated; use separate guarded TUN trial')
+    parser.add_argument('--port', type=int, help='Optional local port override; otherwise safely auto-selected')
+    parser.add_argument('--country', help='Approved fixed egress country, default US; not inferred from node name')
+    parser.add_argument('--scope', choices=['clients','domains-only'], default='clients')
+    parser.add_argument('--preferred-pattern', help='Ordinary preferred region name regex; default US')
+    parser.add_argument('--direct-country', action='append', help='Direct GeoIP country, repeatable; NONE disables country direct rules')
     parser.add_argument('--residential-uid'); parser.add_argument('--ordinary-uid')
     parser.add_argument('--node'); parser.add_argument('--expected-ip')
     parser.add_argument('--claude-path', action='append', help='Reviewed actual path if process discovery is unavailable')
