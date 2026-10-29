@@ -66,7 +66,7 @@ def main():
             cfg.update({'mixed-port':normalport,'external-controller':f'127.0.0.1:{control}',
                 'allow-lan':False,'bind-address':'127.0.0.1','tun':{'enable':False},
                 'dns':{'enable':False},'log-level':'warning',
-                'rules':['DOMAIN,claude.ai,Claude 固定出口', 'DOMAIN,chatgpt.com,ChatGPT 住宅出口',
+                'rules':['DOMAIN,claude.ai,Claude 固定出口', 'DOMAIN,chatgpt.com,ChatGPT 普通出口',
                          'DOMAIN,localhost,DIRECT', 'MATCH,普通外网（美国优先）']})
             for g in cfg['proxy-groups']:
                 if g['type']=='fallback':g.update(url='http://health.example.invalid/health',timeout=500,interval=3600)
@@ -90,7 +90,7 @@ def main():
             assert q.stdout=='US', (q.stdout, q.stderr, api('/proxies'), us.calls, jp.calls, (td/'core.log').read_text())
             assert request(dedicated,'http://downloads.example.invalid/file').stdout=='RES'
             assert request(normalport,'http://claude.ai/request').stdout=='RES'
-            assert request(normalport,'http://chatgpt.com/request').stdout=='RES'
+            assert request(normalport,'http://chatgpt.com/request').stdout=='US'
             # A real DIRECT request to our own local HTTP listener.
             assert request(normalport,f'http://localhost:{jp.port}/direct').stdout=='JP'
             us.healthy=False;health()

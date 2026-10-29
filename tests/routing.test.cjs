@@ -19,7 +19,7 @@ test('ordinary group references only ordinary provider, with US before other reg
 });
 test('residential selector has exactly one destination; listener pins same node', () => {
   const {c,o}=fixture(), r=build(c,o);
-  for(const g of r['proxy-groups'].slice(0,2)) {assert.equal(g.type,'select');assert.deepEqual(g.proxies,['住宅固定节点']);}
+  for(const g of r['proxy-groups'].slice(0,1)) {assert.equal(g.type,'select');assert.deepEqual(g.proxies,['住宅固定节点']);}
   assert.equal(r.listeners.at(-1).proxy,'住宅固定节点');
   assert.equal(r.listeners.at(-1).listen,'127.0.0.1');
 });
@@ -34,7 +34,7 @@ test('rules prioritize Claude and Codex process before generic ChatGPT', () => {
   const {c,o}=fixture(),r=build(c,o),rules=r.rules;
   assert.ok(rules[0].endsWith(',REJECT'));
   const codex=rules.findIndex(x=>x.includes('Codex'));
-  assert.ok(codex<rules.findIndex(x=>x==='DOMAIN-SUFFIX,chatgpt.com,ChatGPT 住宅出口'));
+  assert.ok(codex<rules.findIndex(x=>x==='DOMAIN-SUFFIX,chatgpt.com,ChatGPT 普通出口'));
   assert.equal(rules.at(-1),'MATCH,普通外网（美国优先）');
   assert.ok(rules.includes('GEOSITE,CN,DIRECT'));
   assert.ok(rules.includes('DOMAIN-SUFFIX,claudeusercontent.com,Claude 固定出口'));
@@ -53,4 +53,18 @@ test('independent node DNS; residential domain DNS routed explicitly', () => {
 test('port collision and unreviewed chain do not silently override', () => {
   const {c,o}=fixture(); c.listeners[0].port=o.port; assert.throws(()=>build(c,o),/conflicts/);
   c.listeners=[];c.proxies[0]['dialer-proxy']='another';assert.throws(()=>build(c,o),/Chained/);
+});
+
+test('only Claude uses residential by default; ChatGPT opt-in remains explicit', () => {
+  const {c,o}=fixture(); const r=build(c,o);
+  assert.deepEqual(r['proxy-groups'][1].proxies,['普通外网（美国优先）']);
+  assert.deepEqual(r.dns['nameserver-policy']['+.openai.com'],['https://1.1.1.1/dns-query#普通外网（美国优先）']);
+  o.chatgptResidential=true;const legacy=build(c,o);
+  assert.deepEqual(legacy['proxy-groups'][1].proxies,['住宅固定节点']);
+  assert.ok(legacy.rules.includes('DOMAIN-SUFFIX,chatgpt.com,ChatGPT 住宅出口'));
+});
+test('enabled TUN captures UDP and TCP DNS and retains unrelated options', () => {
+  const {c,o}=fixture();c.tun={enable:true,stack:'gvisor','dns-hijack':['any:53']};
+  const r=build(c,o);assert.deepEqual(r.tun['dns-hijack'],['any:53','tcp://any:53']);
+  assert.equal(r.tun.stack,'gvisor');assert.deepEqual(build(r,o),r);
 });

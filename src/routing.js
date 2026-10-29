@@ -2,7 +2,8 @@
 function build(config, o) {
   const fixed = '住宅固定节点', claude = 'Claude 固定出口';
   const normal = '普通外网（美国优先）', us = '普通·美国', other = '普通·其他地区';
-  const gpt = 'ChatGPT 住宅出口', provider = 'ordinary-only';
+  const gpt = o.chatgptResidential === true ? 'ChatGPT 住宅出口' : 'ChatGPT 普通出口';
+  const provider = 'ordinary-only';
   const clone = x => JSON.parse(JSON.stringify(x));
   config = clone(config);
   const candidates = (config.proxies || []).filter(p =>
@@ -18,7 +19,7 @@ function build(config, o) {
     interval: 180, timeout: 4000, 'max-failed-times': 2, 'expected-status': 204, lazy: false};
   config['proxy-groups'] = [
     {name: claude, type: 'select', proxies: [fixed]},
-    {name: gpt, type: 'select', proxies: [fixed]},
+    {name: gpt, type: 'select', proxies: [o.chatgptResidential === true ? fixed : normal]},
     // REJECT is first so that an all-dead set never resolves to DIRECT/COMPATIBLE.
     {name: normal, ...health, proxies: ['REJECT', us, other]},
     {name: us, ...health, proxies: ['REJECT'], use: [provider], filter: o.usPattern},
@@ -55,7 +56,10 @@ function build(config, o) {
     'direct-nameserver': direct, 'direct-nameserver-follow-policy': false,
     nameserver: [`https://1.1.1.1/dns-query#${normal}`, `https://8.8.8.8/dns-query#${normal}`], fallback: [],
     'nameserver-policy': {'geosite:cn,private': direct,
-      ...Object.fromEntries([...claudeDomains, ...openaiDomains].map(d => ['+.' + d, [`https://1.1.1.1/dns-query#${claude}`]]))}};
+      ...Object.fromEntries(claudeDomains.map(d => ['+.' + d, [`https://1.1.1.1/dns-query#${claude}`]])),
+      ...Object.fromEntries(openaiDomains.map(d => ['+.' + d, [`https://1.1.1.1/dns-query#${o.chatgptResidential === true ? claude : normal}`]]))}};
+  // Cover both DNS transports without enabling/restarting TUN implicitly.
+  if (config.tun?.enable) config.tun['dns-hijack'] = [...new Set([...(config.tun['dns-hijack'] || []), 'any:53', 'tcp://any:53'])];
   return config;
 }
 if (typeof module !== 'undefined') module.exports = {build};

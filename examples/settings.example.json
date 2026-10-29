@@ -1,18 +1,40 @@
 {
-  "residential": {"name": "YOUR_FIXED_NODE_NAME", "server": "192.0.2.10", "port": 443, "type": "vless"},
+  "residential": {
+    "name": "YOUR_FIXED_NODE_NAME",
+    "server": "192.0.2.10",
+    "port": 443,
+    "type": "vless"
+  },
   "expectedIp": "192.0.2.20",
   "country": "US",
   "port": 17897,
   "usPattern": "(?i)(美国|美國|United States|\\bUS\\b|🇺🇸)",
   "ordinaryProvider": {
-    "type": "http", "url": "https://subscription.example.invalid/replace-locally",
-    "path": "./proxy_providers/ordinary-only.yaml", "interval": 3600,
+    "type": "http",
+    "url": "https://subscription.example.invalid/replace-locally",
+    "path": "./proxy_providers/ordinary-only.yaml",
+    "interval": 3600,
     "proxy": "DIRECT",
-    "health-check": {"enable": true, "url": "https://www.gstatic.com/generate_204", "interval": 180},
-    "override": {"additional-prefix": "普通 | "}
+    "health-check": {
+      "enable": true,
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 180
+    },
+    "override": {
+      "additional-prefix": "普通 | "
+    }
   },
-  "proxyServerNameservers": ["223.5.5.5", "119.29.29.29"],
-  "claudePaths": ["/Applications/Claude.app/", "/Users/REPLACE/.local/share/claude/versions/"],
-  "codexPaths": ["/Applications/Codex.app/"],
-  "apiSocket": "/tmp/verge/verge-mihomo.sock"
+  "proxyServerNameservers": [
+    "223.5.5.5",
+    "119.29.29.29"
+  ],
+  "claudePaths": [
+    "/Applications/Claude.app/",
+    "/Users/REPLACE/.local/share/claude/versions/"
+  ],
+  "codexPaths": [
+    "/Applications/Codex.app/"
+  ],
+  "apiSocket": "/tmp/verge/verge-mihomo.sock",
+  "chatgptResidential": false
 }

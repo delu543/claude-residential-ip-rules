@@ -61,6 +61,8 @@ def api(o, endpoint, method='GET', body=None):
     return json.loads(result.stdout) if result.stdout.strip() else None
 
 def validate_options(o):
+    if 'chatgptResidential' in o and type(o['chatgptResidential']) is not bool:
+        raise ValueError('chatgptResidential must be a boolean')
     ipaddress.ip_address(o['expectedIp'])
     if not isinstance(o['port'], int) or not 1024 <= o['port'] <= 65535:
         raise ValueError('Invalid dedicated port')
@@ -173,13 +175,14 @@ def prepare(a):
         'created': datetime.datetime.now().astimezone().isoformat()}))
     print('Prepared and syntax checked; no running configuration changed.')
     print('Replaces selected profile rules/groups/DNS policy; preserves TUN and other listener settings.')
-    print('Claude + ChatGPT: fixed residential. Codex + ordinary: ordinary US, then other ordinary regions.')
+    print('Claude: fixed residential. ChatGPT residential opt-in:', o.get('chatgptResidential') is True)
+    print('Ordinary: ordinary US, then other ordinary regions. Browser WebRTC policy is a separate step.')
 
 def preflight(o):
     if api(o, '/configs')['mode'] != 'rule':
         raise ValueError('Core is not in rule mode')
     groups = api(o, '/proxies')['proxies']
-    for name in ['Claude 固定出口', 'ChatGPT 住宅出口']:
+    for name in ['Claude 固定出口'] + (['ChatGPT 住宅出口'] if o.get('chatgptResidential') is True else []):
         g = groups.get(name, {})
         if g.get('all') != ['住宅固定节点'] or g.get('now') != '住宅固定节点':
             raise ValueError('Fixed group was changed')
@@ -223,6 +226,10 @@ def rollback(a):
     api(read(a.plan / 'settings.json'), '/configs?force=false', 'PUT', {'path': p['targets'][1]})
     print('Previous script and runtime restored. Check client connectivity.')
 
+def require_macos():
+    if sys.platform != "darwin":
+        raise ValueError("This installer supports macOS only; Windows must not reuse Mac paths or report success. See docs/LEAK-PROTECTION.md")
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=['inspect', 'init', 'prepare', 'apply', 'rollback', 'check'])
@@ -233,6 +240,7 @@ def main():
     parser.add_argument('--residential-uid'); parser.add_argument('--ordinary-uid')
     parser.add_argument('--node'); parser.add_argument('--expected-ip')
     a = parser.parse_args()
+    require_macos()
     a.verge_dir = a.verge_dir.resolve(); a.plan = a.plan.resolve()
     os.umask(0o077)
     if a.command == 'inspect': inspect(a.verge_dir)

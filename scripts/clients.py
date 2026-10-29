@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from manage import ROOT, read, save, dump, digest, preflight
+from manage import ROOT, read, save, dump, digest, preflight, require_macos
 
 def proxy_env(o):
     url = f"http://127.0.0.1:{o['port']}"
@@ -36,6 +36,7 @@ def main():
     parser.add_argument('--backup', type=Path, default=ROOT / '.private/clients')
     parser.add_argument('--binary', default=str(Path.home() / '.local/bin/claude'))
     a, rest = parser.parse_known_args()
+    require_macos()
     os.umask(0o077)
     o = read(a.settings)
     if a.command == 'code':
