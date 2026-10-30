@@ -212,7 +212,7 @@ def prepare(a):
     raw = read(profile_path(a.verge_dir, res))
     base = read(runtime)
     base['proxies'] = raw.get('proxies', [])
-    script = (ROOT / 'src/routing.js').read_text(encoding='utf-8') + '\nconst OPTIONS = ' + json.dumps(o, ensure_ascii=False) + ';\nfunction main(config) { return build(config, OPTIONS); }\n'
+    script = 'const ROUTING_POLICY = ' + (ROOT / 'src/policy.json').read_text(encoding='utf-8') + ';\n' + (ROOT / 'src/routing.js').read_text(encoding='utf-8') + '\nconst OPTIONS = ' + json.dumps(o, ensure_ascii=False) + ';\nfunction main(config) { return build(config, OPTIONS); }\n'
     a.plan.mkdir(parents=True, exist_ok=False); a.plan.chmod(0o700)
     save(a.plan / 'routing.js', script)
     js = "const fs=require('fs'),vm=require('vm');let c={};vm.createContext(c);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),c);process.stdout.write(JSON.stringify(c.main(JSON.parse(fs.readFileSync(0,'utf8')))));"

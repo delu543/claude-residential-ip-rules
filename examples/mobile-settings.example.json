@@ -1,0 +1,15 @@
+{
+  "_template": true,
+  "schema": 1,
+  "residentialFile": null,
+  "ordinaryFile": null,
+  "baselineFile": null,
+  "residentialNode": null,
+  "ordinaryNodes": [],
+  "expectedIp": null,
+  "country": null,
+  "iosVersion": null,
+  "shadowrocketVersion": null,
+  "directDns": [],
+  "extraClaudeDomains": []
+}

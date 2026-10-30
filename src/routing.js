@@ -38,8 +38,10 @@ function build(config, o) {
   const xp = o.codexPaths?.length ? pathPattern(o.codexPaths) : null;
   const directCountries = o.directCountries || ['CN'];
   const directGeosites = o.directGeosites || (directCountries.includes('CN') ? ['cn'] : []);
-  const claudeDomains = ['claude.ai', 'claude.com', 'anthropic.com', 'claudeusercontent.com'];
-  const openaiDomains = ['chatgpt.com', 'openai.com', 'oaistatic.com', 'oaiusercontent.com'];
+  // Verge cannot read files: manage.py embeds this same policy in rendered scripts.
+  const policy = typeof ROUTING_POLICY !== 'undefined' ? ROUTING_POLICY : require('./policy.json');
+  const claudeDomains = policy.claudeDomains;
+  const openaiDomains = policy.openaiDomains;
   const hosts = '(OR,(' + openaiDomains.map(d => `(DOMAIN-SUFFIX,${d})`).join(',') + '))';
   config.rules = [
     ...(cp ? [`AND,((NETWORK,udp),(PROCESS-PATH-REGEX,${cp})),REJECT`,

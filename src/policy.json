@@ -1,0 +1,4 @@
+{
+  "claudeDomains": ["claude.ai", "claude.com", "anthropic.com", "claudeusercontent.com"],
+  "openaiDomains": ["chatgpt.com", "openai.com", "oaistatic.com", "oaiusercontent.com"]
+}

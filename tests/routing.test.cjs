@@ -2,6 +2,15 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {build} = require('../src/routing.js');
 const options = require('../examples/settings.example.json');
+test('rendered Verge policy works without require or filesystem access', () => {
+  const fs = require('node:fs'), vm = require('node:vm');
+  const policy = fs.readFileSync(require.resolve('../src/policy.json'),'utf8');
+  const source = fs.readFileSync(require.resolve('../src/routing.js'),'utf8');
+  const {c,o}=fixture(); const context={input:c,options:o};
+  vm.createContext(context);
+  vm.runInContext('const ROUTING_POLICY = '+policy+';\n'+source+'\nresult=build(input,options)',context);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.result)),build(c,o));
+});
 function fixture() {
   const o = structuredClone(options);
   o.port=19080;o.residential={name:'fixture-node',server:'192.0.2.10',port:443,type:'vless'};

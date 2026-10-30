@@ -19,3 +19,12 @@ Windows扩展来源（2026-10-29核对）：
 - [Claude Desktop固定代理](https://claude.com/docs/third-party/claude-desktop/network-proxy)、[配置优先级](https://claude.com/docs/third-party/claude-desktop/configuration-format)：受支持版本、HKCU/HKLM优先级和PAC风险，仅使用固定HTTP代理键。
 - [Chrome政策](https://chromeenterprise.google/policies/#WebRtcIPHandling)、[Edge WebRTC](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/WebRtcLocalhostIpHandling)、[Edge DNS模式](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/DnsOverHttpsMode)：正式政策键，不能盲目跨浏览器同名复制。
 - PyYAML 6.0.3采用MIT许可，仅列依赖，不捆绑；不引入新常驻过滤服务。
+
+手机/USB 调研（2026-10-29）：
+
+- [Apple 文件共享](https://support.apple.com/en-ca/119585)、[iOS沙盒](https://support.apple.com/en-ae/guide/security/sec15bfe098e/1/web/1)、[快捷指令隐私授权](https://support.apple.com/en-euro/guide/shortcuts/apd961a4fc65/ios)：普通USB共享只开放App允许的文档，不能把系统权限或跨App读写当作仓库代码可自行取得的能力。
+- [Apple VPN 部署](https://support.apple.com/guide/deployment/vpn-overview-depae3d361d0/1/web/1.0)：个人设备域名分流与受管理设备的每App/Always-On能力不同；本仓库未实现后者。
+- [Shadowrocket App Store](https://apps.apple.com/us/app/shadowrocket/id932747118)及其[开发者站点](https://shadowlaunch.com/)：身份和版本来源。公开查询 bundle ID 为 com.liguangming.Shadowrocket；目标机仍需读取实际安装元数据。没有声称该App官方提供全配置读写API。
+- [pymobiledevice3](https://github.com/doronz88/pymobiledevice3)，固定PyPI 11.48.0；核对上游 HouseArrest、AFC、InstallationProxy、USB/lockdown接口。上游为GPL-3.0，独立安装，不拷贝或重新许可上游源码，不捆绑二进制。只调用受信任USB Documents接口；维护活跃不等于目标手机兼容已验证。
+- [LOWERTOP/Shadowrocket](https://github.com/LOWERTOP/Shadowrocket)：作者维护的非官方使用手册与配置示例，作为待实机核验的语法参考，不是Apple或Shadowrocket官方兼容保证。原创生成器未复制其规则库或长段文档；native parser保守拒绝未知语法。未检出可用的官方完整配置schema/自动验收API，所以保留experimental状态。
+- 未集成Johnshall的远程广告列表、脚本和订阅转换服务。手机国内基线由目标用户自己导出审阅，公开仓库不分发私有节点或第三方规则内容。

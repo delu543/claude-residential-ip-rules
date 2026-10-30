@@ -1,0 +1,2 @@
+# Optional USB transport; install in a separate private venv, not system Python.
+pymobiledevice3==11.48.0
