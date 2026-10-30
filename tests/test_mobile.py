@@ -135,7 +135,7 @@ class MobileTests(unittest.TestCase):
 
     def test_shared_desktop_mobile_policy(self):
         js = "const {build}=require('./src/routing.js');const o={residential:{},ordinaryProvider:{},usPattern:'US',port:12345,proxyServerNameservers:[]};console.log(JSON.stringify(build({},o).rules))"
-        r=json.loads(subprocess.check_output(['node','-e',js],cwd=mobile.ROOT,text=True))
+        r=json.loads(subprocess.check_output(['node','-e',js],cwd=mobile.ROOT,text=True,encoding='utf-8'))
         conf,_=self.build()
         for d in mobile.POLICY['claudeDomains']:
             self.assertIn(f'DOMAIN-SUFFIX,{d},Claude 固定出口',r)
