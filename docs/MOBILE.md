@@ -1,6 +1,6 @@
 # iPhone + Shadowrocket
 
-状态：**原生配置候选生成已实现；iPhone 实机验收未完成**。目标版本来自用户：2.2.93（3488）。iOS 版本由接线后的设备读取，不以“最新版”替代真实版本。当前推荐操作入口是 Mac 上的 Codex + USB，见 [USB流程](MOBILE-USB.md)。不运行电脑的 `manage.py apply`，不修改 Mac 的工作网络。
+状态：**原生配置候选生成已实现；iPhone 实机验收未完成**。目标版本来自用户：2.2.93（3488）。iOS 版本由接线后的设备读取，不以“最新版”替代真实版本。操作入口是 Windows 或 Mac 上的 Codex + USB，见 [USB流程](MOBILE-USB.md)；Windows 先完成 [电脑再手机流程](WINDOWS-IPHONE.md)。手机分支不运行电脑的 `manage.py apply`，不修改电脑的工作网络。
 
 ## 能力与边界
 
@@ -27,7 +27,7 @@
 
 ## 离线生成
 
-在 Mac 仓库工作目录执行。以下路径只是本地输入示例；所有真实参数保留在 `.private/`。
+在电脑仓库工作目录执行。Windows 使用对应 venv 的 python.exe；下面反斜线换行是 shell 示例，PowerShell 请将参数放同一行或使用反引号换行。以下路径只是本地输入示例；所有真实参数保留在 `.private/`。
 
 ```sh
 python3 scripts/mobile.py capabilities
@@ -47,7 +47,7 @@ python3 scripts/mobile.py prepare
 python3 scripts/mobile.py check
 ```
 
-输出 `.private/mobile-plan/shadowrocket.conf`（含节点密钥）和 `receipt.json`。它们不可发布到 GitHub、Issue、公共链接或第三方短链。生成器不下载订阅、不读取 Mac 当前网络、不改变手机设置。原有文件从不覆盖；后续计划用 `--output .private/mobile-plan-2`。配置和源哈希发生变化，旧验证不能复用。
+输出 `.private/mobile-plan/shadowrocket.conf`（含节点密钥）和 `receipt.json`。它们不可发布到 GitHub、Issue、公共链接或第三方短链。生成器不下载订阅、不读取电脑当前网络、不改变手机设置。原有文件从不覆盖；后续计划用 `--output .private/mobile-plan-2`。配置和源哈希发生变化，旧验证不能复用。
 
 原生协议支持是保守白名单：SS、VMess、VLESS、Trojan、Hysteria2 的已审阅参数。Reality/传输层扩展只原样保留已识别字段，不猜测映射；未知参数立即停止。不得为了生成成功移除参数或关闭 TLS 验证。来源节点内嵌为快照，因此手机自动更新原订阅不会更新本文件；更新后重新生成、核对固定身份并验证。住宅节点更名/缺失会停止生成，保留之前文件，不自动选新节点。
 
@@ -66,13 +66,13 @@ python3 scripts/mobile.py check
 
 每个项目保存对应配置哈希、时间、实际 iOS/App 版本、结果与最少的连接证据到本地。不要上传私有节点或完整日志。
 
-1. 基线：普通代理、国内网站和原配置恢复路径可用；Mac Codex 仍可访问网络。
+1. 基线：普通代理、国内网站和原配置恢复路径可用；电脑 Codex 仍可访问网络。
 2. 原生编译/应用：两组的实际成员正确，住宅只有固定节点，普通无住宅；新配置实际启用。
 3. 正常流量：Claude 请求进入住宅；ChatGPT/普通外网进入普通；国内请求 DIRECT。不能用普通 IP 检测页面的 IP 代替 Claude 连接链证据。
-4. 住宅故障：先退出手机 Claude，在独立测试副本中使住宅端点不可用，用不含账号凭据的测试请求检查失败与日志；不得改/暂停真实住宅服务或影响 Mac。确认没有普通/DIRECT 尝试后恢复副本，重新验证住宅出口再使用 Claude。
+4. 住宅故障：先退出手机 Claude，在独立测试副本中使住宅端点不可用，用不含账号凭据的测试请求检查失败与日志；不得改/暂停真实住宅服务或影响电脑。确认没有普通/DIRECT 尝试后恢复副本，重新验证住宅出口再使用 Claude。
 5. 普通故障：用独立副本验证美国失效改走其他普通节点，普通全失效不借住宅；记录测试周期和恢复时间。
 6. DNS/STUN：用实际手机浏览器、Wi-Fi与蜂窝分别测试；观察请求的实际出口、解析和 IPv6。只见“未检出”不能证明所有流量都被阻断。
 7. VPN 关闭：已知不提供全系统 kill switch。不要用已登录 Claude 做直连试验；若必须验证隔离，先设计独立系统方案。
-8. 回滚：停止手机 Claude，选择之前保留的原配置/路由模式，恢复原开关并验证普通网络。若原配置不保护 Claude，在重新验收前保持 Claude 关闭。无需 Codex 在线，不需删除新文件。Mac USB工具不会自动重启任何 VPN。
+8. 回滚：停止手机 Claude，选择之前保留的原配置/路由模式，恢复原开关并验证普通网络。若原配置不保护 Claude，在重新验收前保持 Claude 关闭。无需 Codex 在线，不需删除新文件。USB工具不会自动重启任何 VPN。
 
 当前 `receipt.json` 的手机项全部初始为 pending；`check` 只检查离线完整性，不能将其输出改成现场通过。开发/模拟完成与手机全链路验收分开交付。

@@ -52,3 +52,13 @@ Changed Existing Capabilities：端口由默认常量改为自动选择且稳定
 - 模拟 USB：只选 USB、歧义拒绝、Documents 路径/文件类型/大小、版本漂移停止、传输读回、损坏回执、重复写入拒绝、无共享不退回完整容器。
 - 未验证：iPhone Shadowrocket 2.2.93（3488）的 Documents 共享、实际节点导出格式、原生编译/分组/DNS/STUN、真实故障与回滚；用户选择之后再连接手机。
 - 本增量作为实验版本发布，手机实机验收另行进行。各提交的跨平台 CI 状态见 [GitHub Actions](https://github.com/delu543/claude-residential-ip-rules/actions/workflows/test.yml)，不能把旧提交的 CI 结果用于新提交。上述离线结果及 CI 通过均不可作为手机全自动安装或防泄露成功证明。
+
+## 2026-10-30 Windows 主机 + iPhone 顺序扩展
+
+- 本地 Python 68 项：66 通过，2 项原生 Windows 注册表/PowerShell 语法测试在 Mac 跳过；Node 16 项：15 通过，1 项 Windows 恢复进程测试在 Mac 跳过。
+- 新增覆盖：Apple 服务/依赖失败与无手机区分、USB 指纹隐私、Windows 后端平台支持、全部 Code 代理环境回读、Chrome 缺项/机器政策覆盖、工作流中断与旧成功失效、桌面检查失败不操作手机、UTF-8 及私有事件回执、健康 TUN 保留。
+- CI 新增 Windows/macOS 真实安装固定 USB 依赖并导入后端，不连接设备。每个提交结果见 [Actions](https://github.com/delu543/claude-residential-ip-rules/actions/workflows/test.yml)。
+- 无新代理内核语义变化，保留前版隔离 Mihomo 证据；本轮未对当前 Mac 执行网络 apply、TUN/系统代理/DNS 改动或手机操作。
+- 未验证：目标 Windows 的真实 Apple 服务/配对、Shadowrocket 共享和导出格式、手机导入/VPN、两台目标设备的真实 DNS/STUN/客户端及故障恢复。提示词与工具不等于这些实机验收。
+
+Changed Existing Capabilities：Windows 检查由路由/联网扩展为所选组件回读；Mac-only USB 平台限制替换为 Windows/macOS 支持。无其他能力删除。

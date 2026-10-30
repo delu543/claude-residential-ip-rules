@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mac -> trusted USB iPhone document sharing. No private-container fallback.
+"""Windows/macOS -> trusted USB iPhone documents. No private-container fallback.
 
 Does not activate a VPN/profile, edit preferences, collect backups, or read other
 apps. File transfer success is not network acceptance. Optional dependency is
@@ -8,11 +8,12 @@ installed by the operator in a separate venv; nothing is installed at runtime.
 import argparse
 import asyncio
 import hashlib
-from importlib.metadata import version
+from importlib.metadata import version, PackageNotFoundError
 import json
 from pathlib import Path, PurePosixPath
 import re
 import ssl
+import subprocess
 import sys
 import uuid
 
@@ -98,11 +99,15 @@ async def stage(service, settings, output, target):
 
 
 def load_backend():
-    if sys.platform != 'darwin':
-        raise ValueError('USB workflow currently targets a Mac host only')
+    if sys.platform not in ('darwin', 'win32'):
+        raise ValueError('Use native Windows or macOS for USB; WSL is not supported')
     if sys.version_info < (3, 11) or not ssl.OPENSSL_VERSION.startswith('OpenSSL '):
         raise ValueError('Use Python 3.11+ built with OpenSSL in the optional USB venv')
-    if version('pymobiledevice3') != DEPENDENCY_VERSION:
+    try:
+        installed = version('pymobiledevice3')
+    except PackageNotFoundError:
+        raise ValueError('Install requirements-mobile.txt into the optional Python 3.11+ USB venv') from None
+    if installed != DEPENDENCY_VERSION:
         raise ValueError('USB dependency version changed; review adapter before use')
     from pymobiledevice3 import usbmux
     from pymobiledevice3.lockdown import create_using_usbmux
@@ -111,7 +116,52 @@ def load_backend():
     return usbmux, create_using_usbmux, InstallationProxyService, HouseArrestService
 
 
+def windows_host():
+    # No registry writes, driver installs, service restarts, full device IDs or
+    # network adapter changes. The mux protocol probe is the source of readiness.
+    script = """[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();
+    $ErrorActionPreference='Stop';
+    @{services=@(Get-Service | Where-Object {$_.Name -match 'Apple.*Mobile.*Device|AppleMobileDevice'} |
+       ForEach-Object {@{name=$_.Name;status=$_.Status.ToString()}});
+      appleDevicesInstalled=@(Get-AppxPackage -Name AppleInc.AppleDevices).Count -gt 0;
+      appleUsb=@(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue |
+        Where-Object {$_.InstanceId -like 'USB\\VID_05AC*'} |
+        ForEach-Object {@{status=$_.Status;class=$_.Class}})} | ConvertTo-Json -Depth 4 -Compress"""
+    raw = subprocess.check_output(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script], timeout=20)
+    return json.loads(raw.decode('utf-8-sig'))
+
+
+async def doctor():
+    report = {'host':sys.platform, 'python':'.'.join(map(str, sys.version_info[:3])),
+              'openssl':ssl.OPENSSL_VERSION, 'networkChanged':False,
+              'phoneModified':False, 'trustGranted':'not-tested', 'readyForUSB':False}
+    if sys.platform == 'win32':
+        try:
+            report['appleHost'] = windows_host()
+        except Exception as exc:
+            report['appleHost'] = {'status':'diagnostic-unavailable', 'errorType':type(exc).__name__}
+    try:
+        mux, *_ = load_backend()
+    except ValueError as exc:
+        return dict(report, status='host-prerequisite-missing', next=str(exc))
+    except Exception as exc:
+        return dict(report, status='backend-import-failed', errorType=type(exc).__name__,
+                    next='Check the pinned USB venv; do not replace drivers or change networking')
+    try:
+        devices = await asyncio.wait_for(mux.list_devices(), timeout=10)
+    except Exception as exc:
+        return dict(report, status='usbmux-unreachable', errorType=type(exc).__name__,
+                    next='Windows: check official Apple Devices/iTunes service and data cable; macOS: check USB. Do not enable hotspot, TUN or a developer tunnel')
+    usb = [{'device':fingerprint(d.serial)} for d in devices if d.is_usb]
+    return dict(report, readyForUSB=True, usbDevices=usb,
+                status='usb-detected' if usb else 'no-usb-device',
+                next='Select the intended USB device; unlock and trust only when pairing' if usb else
+                'Connect and unlock the iPhone with a data cable. Existing desktop setup is preserved')
+
+
 async def run(a):
+    if a.action == 'doctor':
+        return await doctor()
     usbmux, connect, Installation, House = load_backend()
     devices = await usbmux.list_devices()
     if a.action == 'devices':
@@ -160,13 +210,15 @@ async def run(a):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action',choices=['devices','pair','probe','pull','stage'])
+    p.add_argument('action',choices=['doctor','devices','pair','probe','pull','stage'])
     p.add_argument('--device',help='Opaque device fingerprint from devices; required if multiple phones attached')
     p.add_argument('--document')
     p.add_argument('--destination',type=Path)
     p.add_argument('--settings',type=Path,default=Path('.private/mobile-settings.json'))
     p.add_argument('--output',type=Path,default=Path('.private/mobile-plan'))
     a=p.parse_args()
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
     try:
         result=asyncio.run(asyncio.wait_for(run(a),timeout=45))
         print(json.dumps(result,ensure_ascii=False,indent=2))

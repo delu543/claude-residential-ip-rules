@@ -13,6 +13,11 @@ def proxy_env(o):
     url = f"http://127.0.0.1:{o['port']}"
     return {k: url for k in ('HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy')} | {'NO_PROXY': '', 'no_proxy': ''}
 
+def check_code(o, home):
+    path = home / '.claude/settings.json'
+    env = read(path).get('env', {}) if path.is_file() else {}
+    return isinstance(env, dict) and all(env.get(k) == v for k,v in proxy_env(o).items())
+
 def targets(o, home, code_only=False):
     if code_only:
         code = home / ".claude/settings.json"
@@ -37,7 +42,7 @@ def targets(o, home, code_only=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['plan', 'apply', 'rollback', 'code'])
+    parser.add_argument('command', choices=['plan', 'apply', 'check', 'rollback', 'code'])
     parser.add_argument('--settings', type=Path, default=ROOT / '.private/settings.json')
     parser.add_argument('--backup', type=Path, default=ROOT / '.private/clients')
     parser.add_argument('--binary', default=str(Path.home() / ('.local/bin/claude.exe' if sys.platform == 'win32' else '.local/bin/claude')))
@@ -57,6 +62,13 @@ def main():
         os.execvpe(a.binary, argv, env)
     if rest:
         raise ValueError('Unexpected arguments')
+    if a.command == 'check':
+        if not a.code_only:
+            raise ValueError('Use check --code-only; Desktop has a separate platform policy check')
+        ok = check_code(o, Path.home())
+        print(json.dumps({'configured':ok, 'clientBehaviorVerified':False}))
+        if not ok: raise ValueError('Claude Code fixed proxy environment is missing or changed')
+        return
     if a.command in ('plan', 'apply'):
         # Unknown desktop builds stop here. Do not fabricate a config file path.
         if sys.platform == 'win32' and not a.code_only:

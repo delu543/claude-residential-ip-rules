@@ -28,3 +28,9 @@ Windows扩展来源（2026-10-29核对）：
 - [pymobiledevice3](https://github.com/doronz88/pymobiledevice3)，固定PyPI 11.48.0；核对上游 HouseArrest、AFC、InstallationProxy、USB/lockdown接口。上游为GPL-3.0，独立安装，不拷贝或重新许可上游源码，不捆绑二进制。只调用受信任USB Documents接口；维护活跃不等于目标手机兼容已验证。
 - [LOWERTOP/Shadowrocket](https://github.com/LOWERTOP/Shadowrocket)：作者维护的非官方使用手册与配置示例，作为待实机核验的语法参考，不是Apple或Shadowrocket官方兼容保证。原创生成器未复制其规则库或长段文档；native parser保守拒绝未知语法。未检出可用的官方完整配置schema/自动验收API，所以保留experimental状态。
 - 未集成Johnshall的远程广告列表、脚本和订阅转换服务。手机国内基线由目标用户自己导出审阅，公开仓库不分发私有节点或第三方规则内容。
+
+Windows USB 扩展（2026-10-30）：
+
+- [Apple Devices 文件共享](https://support.apple.com/en-ie/120402)、[Windows 传输流程](https://support.apple.com/guide/devices-windows/transfer-files-between-your-devices-mchl4bd77d3a/windows)：仅共享 App 支持的文档，文件传输不代表配置导入。
+- [pymobiledevice3 平台安装说明](https://github.com/doronz88/pymobiledevice3/blob/master/docs/installation.md)：Windows 依赖 Apple 设备服务。本次仍固定 11.48.0，复用 USB/HouseArrest API，无新常驻服务；仅 USB，不使用文档中的 Wi-Fi 发现或开发者隧道。已有 Apple Devices/iTunes USB 接口可用则保留，不自动重装驱动。
+- 原 Windows 安装器扩展设置复查与顺序衔接，没有改变代理内核语义或复制新上游代码。

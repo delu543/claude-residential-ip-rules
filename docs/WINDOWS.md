@@ -4,6 +4,8 @@
 
 先读 [通用化与个人参数](PORTABILITY.md) 和 [客户端边界](CLIENTS.md)。本仓库不提供订阅、住宅IP或账号，不复制作者的地址和路径。默认Chrome，不改Edge。
 
+还要接 iPhone 时，完成本页电脑步骤后进入 [Windows → USB iPhone](WINDOWS-IPHONE.md)；可直接使用其中的 Codex 提示词。
+
 ## 0. 前置网络检查，任何写入之前
 
 使用原生Windows PowerShell/Python，不在WSL。要求已安装Clash Verge Rev、Node.js 18+、Python 3.9+和curl.exe。内核参考语义基线v1.19.15，实际版本仍要语法验收；本仓库不自动更新内核/安装驱动/禁用安全功能。
@@ -45,6 +47,8 @@ py -3 -m venv .venv
 ```
 
 仅原生Code用`prepare --clients code`；只配置路由和浏览器用空`--clients`；Desktop需要实际exe。默认Chrome，可选其他浏览器需明确指定。自定义plan每次命令传同一`--plan`。
+
+`check` 会重新检查所选 Desktop、Code、Chrome 设置，拒绝未完成/中断工作流，并在 `verification.json` 区分设置检查与实际界面验证；旧的成功报告不能掩盖新失败。
 
 阶段内容：
 

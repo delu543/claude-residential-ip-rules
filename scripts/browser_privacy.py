@@ -74,6 +74,7 @@ def main():
     p.add_argument('--browser',choices=['chrome','edge'],default='chrome')
     p.add_argument('--policy',choices=['webrtc','dns'],default='webrtc')
     p.add_argument('--settings',type=Path,default=Path(__file__).resolve().parents[1]/'.private/settings.json')
+    p.add_argument('--require-configured',action='store_true',help='Fail check when missing, changed or overridden by machine policies')
     a=p.parse_args();platform_check()
     BROWSER=a.browser;KEY='WebRtcIPHandling';VALUE='disable_non_proxied_udp';DOMAIN='com.google.Chrome';REGPATH=r'Software\Policies\Google\Chrome'
     if a.browser=='edge':
@@ -97,7 +98,16 @@ def main():
             if not all(collect(o)['checks'].values()):
                 raise ValueError('Windows DNS queries are not captured; leave browser DoH unchanged and repair TUN first')
         print('Browser DoH will defer to the system/TUN resolver. Test DNS after apply; do not claim protection if Clash is off.')
-    if a.command=='check': print(json.dumps({KEY:read_policy(),'effectiveBrowserVerified':False}))
+    if a.command=='check':
+        current=read_policy()
+        machine=False
+        if sys.platform=='win32':
+            from windows_policy import machine_present
+            machine=machine_present(REGPATH)
+        ok=current==VALUE and not machine
+        print(json.dumps({KEY:current,'configured':ok,'machinePolicyPresent':machine,'effectiveBrowserVerified':False}))
+        if a.require_configured and not ok:
+            raise ValueError('Browser policy missing/changed or machine-managed; inspect effective browser policy')
     elif a.command=='apply': apply(a.backup)
     else: rollback(a.backup)
 

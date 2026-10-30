@@ -3,10 +3,11 @@
 Initialization still requires locally reviewed subscription IDs and expected exit IP.
 """
 import argparse
+from datetime import datetime, timezone
 from pathlib import Path
 import subprocess
 import sys
-from manage import ROOT, read, save, dump
+from manage import ROOT, read, save, dump, digest
 from windows_desktop import ensure_closed
 from platform_support import default_verge_dir
 
@@ -28,6 +29,40 @@ def steps(a):
             base=['--browser',browser,'--policy',policy,'--settings',a.settings,'--backup',a.plan/f'{browser}-{policy}.json']
             result.append((f'{browser}-{policy}','browser_privacy.py',['apply',*base],['rollback',*base]))
     return result
+
+
+def verify(state, plan, full=False):
+    """Read back every selected component, not only a successful HTTP probe."""
+    report={'schema':1, 'checkedAt':datetime.now(timezone.utc).isoformat(),
+            'configurationChecked':False, 'fullyVerified':False, 'checks':{},
+            'manualRequired':['Chrome effective policy and STUN IPv4/IPv6',
+                              'Claude Desktop/Code actual routes including tools',
+                              'ordinary/domestic live routes', 'isolated fault and rollback tests'],
+            'dnsInterception':'not-requested'}
+    receipt=plan/'verification.json'
+    save(receipt,dump(report))  # Invalidate an older success before any fresh check.
+    names=[s[0] for s in state.get('steps',[])]
+    if not names or state.get('pending') or any(n not in state.get('completed',[]) for n in names):
+        raise ValueError('Workflow has unfinished/interrupted steps; inspect workflow.json before verification')
+    common=['--settings',state['settings']]
+    checks=[('routing','manage.py',['check',*common]),
+            ('baseline','bootstrap.py',[*common,'--output',plan/'baseline-check.json'])]
+    for name,script,do,_ in state['steps']:
+        if name=='desktop': checks.append((name,'windows_desktop.py',['check',*common]))
+        elif name=='code': checks.append((name,'clients.py',['check',*common,'--code-only']))
+        elif script=='browser_privacy.py':
+            checks.append((name,script,['check',*do[1:],'--require-configured']))
+    if full:checks.append(('dns','windows_audit.py',[*common,'--output',plan/'audit.json']))
+    for name,script,args in checks:
+        try:
+            run(script,args)
+        except Exception:
+            report['checks'][name]='failed';save(receipt,dump(report));raise
+        report['checks'][name]='pass';save(receipt,dump(report))
+    report.update(configurationChecked=True, settingsSha256=digest(state['settings']),
+                  dnsInterception='query-samples-pass-upstream-and-browser-unverified' if full else 'not-requested')
+    save(receipt,dump(report))
+    return report
 
 
 def main():
@@ -59,10 +94,8 @@ def main():
         print('Prepared; review candidate and run isolated tests before apply. No production changes.');return
     state=read(receipt)
     if a.command=='check':
-        run('manage.py',['check','--settings',state['settings']])
-        run('bootstrap.py',['--settings',state['settings'],'--output',a.plan/'baseline-check.json'])
-        if a.full:run('windows_audit.py',['--settings',state['settings'],'--output',a.plan/'audit.json'])
-        else:print('System-proxy stage checked. TUN/DNS interception is not certified; use --full only after separate TUN validation.')
+        verify(state,a.plan,a.full)
+        print('Selected routing/client/browser settings checked. Effective browser, real clients and phone acceptance remain separate.')
         return
     ensure_closed()
     if a.command=='rollback':

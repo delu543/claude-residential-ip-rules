@@ -43,7 +43,13 @@ def check(o, runtime, require_system=True):
         p=diag.get('proxy') or {};port=ordinary_proxy(runtime).rsplit(':',1)[1]
         endpoints=[x.split('=',1)[-1].strip() for x in (p.get('ProxyServer') or '').split(';')]
         result['systemProxyConfirmed']=p.get('ProxyEnable')==1 and any(x in (f'127.0.0.1:{port}',f'localhost:{port}') for x in endpoints)
-    result['ready']=result['ordinaryProxyReachable'] and (not require_system or result['systemProxyConfirmed'])
+    # A healthy existing TUN must not be toggled merely because WinINET is off.
+    # Still prove the ordinary listener and the current implicit path separately.
+    result['existingTunReachable']=(http_probe(o.get('healthUrl','https://www.gstatic.com/generate_204'),None)
+                                   if result['tunEnabled'] and not result['systemProxyConfirmed'] else False)
+    result['ready']=result['ordinaryProxyReachable'] and (not require_system or result['systemProxyConfirmed'] or result['existingTunReachable'])
+    result['connectivityMode']=('system-proxy' if result['systemProxyConfirmed'] else
+                                'existing-tun' if result['existingTunReachable'] else 'not-confirmed')
     return result
 
 

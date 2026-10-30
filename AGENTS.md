@@ -18,7 +18,9 @@
 
 ## 发布与维护
 
-iPhone 分支先读 docs/MOBILE.md 和 docs/MOBILE-USB.md。使用 Mac 主机生成并通过受信任 USB 的 Documents 文件共享传输，先读能力、实际 iOS/App 版本及源导出；不要执行电脑 manage.py 去配置手机。只有目标 App 声明文件共享且实际 VendDocuments 成功才能传输，拒绝后不改用 VendContainer、全机备份、越狱或猜内部数据库。不得把“仅手机 Codex 阅读仓库”说成已获得本地 App 读写权限。首次系统信任/VPN 批准由用户完成。
+iPhone 分支先读 docs/MOBILE.md 和 docs/MOBILE-USB.md。使用原生 Windows 或 Mac 主机生成并通过受信任 USB 的 Documents 文件共享传输，先读能力、实际 iOS/App 版本及源导出；不要执行电脑 manage.py 去配置手机。只有目标 App 声明文件共享且实际 VendDocuments 成功才能传输，拒绝后不改用 VendContainer、全机备份、越狱或猜内部数据库。不得把“仅手机 Codex 阅读仓库”说成已获得本地 App 读写权限。首次系统信任/VPN 批准由用户完成。
+
+Windows + iPhone 连续配置先读 docs/WINDOWS-IPHONE.md：先修本机未完成项，check 必须包括所选 Desktop/Code/Chrome，之后用 windows_phone.py 连接手机。doctor 先检查 Apple 服务，现有 USB 可用就不换驱动；不打开热点/开发者隧道。每次真实手机动作复查电脑状态，手机失败不能重跑已完成电脑 apply。使用手机自身订阅，不能直接复制电脑配置。
 
 手机暂无订阅/未连接时，继续开发和离线测试；不要伪造版本、手机证据或 fullyVerified。用户要求先实机验收再发布时，保留本地候选，不能绕过发布顺序。Shadowrocket 原生编译、分组故障、DNS/STUN、Wi-Fi/蜂窝切换要分别验证。手机普通订阅默认含 ChatGPT；共享下载域名需连接证据，不能将整浏览器或全部 CDN 归住宅。手机实验适配不修改当前 Mac 网络。
 

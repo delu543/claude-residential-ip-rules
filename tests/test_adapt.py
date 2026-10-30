@@ -39,6 +39,13 @@ class AdaptTests(unittest.TestCase):
         result=windows_setup.steps(a)
         self.assertEqual([x[0] for x in result],['routing','chrome-webrtc'])
         self.assertNotIn('dns',str(result))
+    def test_existing_healthy_tun_is_preserved_without_requiring_proxy_toggle(self):
+        with patch.object(bootstrap.sys,'platform','win32'),patch.object(bootstrap,'http_probe',side_effect=[True,True]) as probe,patch.object(bootstrap,'windows_diagnostics',return_value={'proxy':{'ProxyEnable':0}}):
+            r=bootstrap.check({}, {'mixed-port':7890,'tun':{'enable':True}})
+        self.assertTrue(r['ready']);self.assertEqual(r['connectivityMode'],'existing-tun')
+        self.assertIsNone(probe.call_args_list[-1].args[1])
+        with patch.object(bootstrap.sys,'platform','win32'),patch.object(bootstrap,'http_probe',side_effect=[True,False]),patch.object(bootstrap,'windows_diagnostics',return_value={'proxy':{'ProxyEnable':0}}):
+            self.assertFalse(bootstrap.check({}, {'mixed-port':7890,'tun':{'enable':True}})['ready'])
     def test_watchdog_restores_without_online_agent(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d);manage.save(p/'baseline.json','{"tun":{"enable":false}}')

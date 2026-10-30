@@ -1,6 +1,8 @@
-# Mac Codex + USB iPhone 工作流
+# Windows / Mac Codex + USB iPhone 工作流
 
-这比仅在手机上阅读仓库更适合本项目：代码、测试、备份放在 Mac；手机只承载真实 Shadowrocket 路由。**USB 不是读取任意 App 数据的授权，也不自动给予界面控制。** Apple 文件共享仅对支持该能力的 App 开放；信任配对、文件共享、VPN 批准是不同权限。
+这比仅在手机上阅读仓库更适合本项目：代码、测试、备份放在电脑；手机只承载真实 Shadowrocket 路由。**USB 不是读取任意 App 数据的授权，也不自动给予界面控制。** Apple 文件共享仅对支持该能力的 App 开放；信任配对、文件共享、VPN 批准是不同权限。
+
+Windows 电脑先使用 [Windows → iPhone 顺序入口](WINDOWS-IPHONE.md)，含 PowerShell 命令、Apple 服务检查和电脑优先检查。本文下面的 shell 命令保留给 Mac；USB 协议和 Documents 安全边界两端相同。
 
 ## 首次连接前
 
@@ -20,7 +22,7 @@ python3 -m venv .private/mobile-tools
 
 ## 连接与能力检测
 
-1. USB 接 iPhone，解锁；在 iPhone 和 Finder 出现信任提示时由用户确认。不通过脚本假定或绕过信任。
+1. USB 接 iPhone，解锁；在 iPhone 和 Finder/Apple Devices 出现信任提示时由用户确认。不通过脚本假定或绕过信任。
 2. 以下命令默认 USB-only；两台手机时必须选明确指纹，不随机挑选。不输出序列号、设备名称或其他 App 清单。
 
 ```sh
@@ -54,7 +56,7 @@ python3 scripts/mobile.py check
 
 `stage` 重新验证输入与候选哈希、实际设备版本，只写一个新的随机名称 `.conf`，从手机读回比较原始字节。写入前保存本地意图回执；中途拔线/失败不生成成功回执、不删除文件或自动重试。检查 `usb-transfer.json` 和 `usb-readback.json` 后决定恢复。原配置与节点不覆盖。
 
-**stage 不启用配置或 VPN。** 需要通过小火箭正式导入/选择/编译界面完成。若 Mac 上有用户授权且实际可用的手机界面操作工具，可用它协助；不存在这种工具时不假装已点击。URL Scheme 与快捷指令只能调用 App 暴露的动作，不能读回完整设置或自行获得系统权限，本版本没有未经验证的一键快捷指令。
+**stage 不启用配置或 VPN。** 需要通过小火箭正式导入/选择/编译界面完成。若电脑上有用户授权且实际可用的手机界面操作工具，可用它协助；不存在这种工具时不假装已点击。URL Scheme 与快捷指令只能调用 App 暴露的动作，不能读回完整设置或自行获得系统权限，本版本没有未经验证的一键快捷指令。
 
 ## 给 Mac Codex 的执行提示
 

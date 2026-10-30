@@ -33,9 +33,13 @@ Codex 可以自动读取和配置，但**首次仍需明确哪份是住宅订阅
 
 先读 [通用适配说明](docs/PORTABILITY.md) 和 [Windows流程](docs/WINDOWS.md)。默认先验证可用系统代理，不要求先开TUN；Chrome WebRTC先配置，DNS接管与TUN后续独立验收。`scripts/windows_setup.py` 统一执行 prepare / apply / check / rollback；先用 `manage.py init` 从本机生成私有设置。原生 Windows Python 需要安装 `requirements.txt` 中的 PyYAML，不能套用 WSL 网络。系统权限批准、真实节点身份和有效浏览器政策检查不能跳过。
 
-## iPhone + Shadowrocket：Mac 辅助配置（实验阶段）
+## Windows 电脑与 iPhone 连续配置
 
-新增 [手机实施入口](docs/MOBILE.md) 和 [Mac USB 工具](docs/MOBILE-USB.md)。Mac 上的 Codex 可以离线生成原生 `.conf` 候选、检查两类节点边界，并在受信任 USB 连接、App 开放文件共享的条件下导出或传入文件。手机与电脑共用 `src/policy.json` 的 Claude/OpenAI 域名定义，协议语法分别生成。
+使用 [两阶段实施说明](docs/WINDOWS-IPHONE.md) 和 [可直接复制的完整提示词](docs/WINDOWS-IPHONE-PROMPT.md)。先在目标 Windows 完成配置与核验，再经 USB 识别、配对、传输手机候选；缺少手机不会重做电脑配置。`windows_phone.py` 每次手机操作前重新检查电脑状态，`mobile_usb.py doctor` 只读检查 Apple 设备服务与 USB。系统信任、VPN 批准及无接口时的手机导入点击仍由用户完成。
+
+## iPhone + Shadowrocket：Windows / Mac 辅助配置（实验阶段）
+
+新增 [手机实施入口](docs/MOBILE.md) 和 [USB 工具](docs/MOBILE-USB.md)。Windows / Mac 上的 Codex 可以离线生成原生 `.conf` 候选、检查两类节点边界，并在受信任 USB 连接、App 开放文件共享的条件下导出或传入文件。手机与电脑共用 `src/policy.json` 的 Claude/OpenAI 域名定义，协议语法分别生成。
 
 **尚未完成 iPhone 原生引擎实测；不能称为手机全自动安装器。** 数据线不会授予跨 App 私有数据权限，文件传输不等于配置启用。用户需要批准 iOS 信任/VPN 请求；是否能由代理操作导入界面，要先确认实际设备接口。当前手机适配按已知目标域名分流，不能等同于电脑进程规则，也不能承诺关闭 VPN 后仍阻止 Claude 直连。请先读能力边界再实施，不要直接在正在使用 Claude 的手机上试验。
 

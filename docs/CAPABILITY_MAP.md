@@ -36,7 +36,15 @@
 
 - changed：Claude/OpenAI 域名集中到 src/policy.json；Verge生成脚本内嵌，不增加运行时文件读取。电脑路由语义保持。
 - experimental：Shadowrocket 原生节点快照与本地规则基线 → 私有候选/哈希回执；未知协议、混合源、住宅消失停止生成。
-- experimental：Mac 通过 pymobiledevice3 的受信任 USB Documents 共享探测、指定文档导出、新文件传输和读回。没有 App 数据共享就停止，不升级为完整容器访问。
+- experimental：Windows/macOS 通过 pymobiledevice3 的受信任 USB Documents 共享探测、指定文档导出、新文件传输和读回。没有 App 数据共享就停止，不升级为完整容器访问。
 - experimental：手机 fallback/DNS/STUN/故障回归；当前只有离线与模拟测试，未实机。
 - 未实现且不承诺：自动授权、手机任意进程归属、无设备接口的全自动安装、VPN退出强制断网。
 - 无能力移除：Mac/Windows、普通订阅与住宅隔离、回滚及联网优先流程保留。依赖只装在可选私有venv。
+
+## Windows + iPhone 顺序扩展（2026-10-30）
+
+- active：Windows check 补齐所选 Desktop/Code/Chrome 设置回读；未完成步骤、过期成功或政策漂移不再通过。
+- active：保留已健康的 TUN 路径，系统代理未打开不自动触发切换；默认仍联网优先。
+- experimental：Windows Apple 服务/USB 只读前检、原生 Windows USB 后端与每步复查桌面的 windows_phone 入口。真实 Windows+iPhone 仍待接机验证。
+- active：UTF-8 子进程、独立依赖环境、保留备份及新建传输文件。
+- 无能力移除：桌面规则、Mac USB、数据保留和恢复流程不变；没有新增系统权限绕过或手机界面自动化保证。
