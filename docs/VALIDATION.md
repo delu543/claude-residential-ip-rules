@@ -62,3 +62,12 @@ Changed Existing Capabilities：端口由默认常量改为自动选择且稳定
 - 未验证：目标 Windows 的真实 Apple 服务/配对、Shadowrocket 共享和导出格式、手机导入/VPN、两台目标设备的真实 DNS/STUN/客户端及故障恢复。提示词与工具不等于这些实机验收。
 
 Changed Existing Capabilities：Windows 检查由路由/联网扩展为所选组件回读；Mac-only USB 平台限制替换为 Windows/macOS 支持。无其他能力删除。
+
+## 2026-10-30 准备清单与执行提示词更新
+
+- 本次仅更新文档和代理执行指令，运行代码、依赖版本及网络规则不变；已有代码测试证据继续适用，新提交CI结果另见Actions。
+- 检查新增/修改文档的UTF-8、相对链接、私人参数和diff格式；入口已接入README、AGENTS、Windows与两阶段流程。
+- 核对执行顺序：缺依赖先补齐、健康环境复用、系统确认后续接、手机未连接先完成电脑、无共享改正式导入、安装后验证以及配置/实测证据分开。
+- 未在当前电脑安装新软件或修改网络；没有增加Windows/iPhone实机验收结果。自动补齐由目标本地Codex按授权执行，doctor仍为只读检查。
+
+Changed Existing Capabilities：准备清单成为实施前置步骤，提示词明确自动补齐与持续执行；无代码改动或功能删除。

@@ -4,6 +4,10 @@
 
 执行提示词见 [WINDOWS-IPHONE-PROMPT.md](WINDOWS-IPHONE-PROMPT.md)。本流程不需要重新设计路由：复用现有 Windows 安装器、手机生成器和 Documents 传输，只补齐阶段衔接。下载仓库本身不会修改任何网络设置。
 
+## 零、先检查并补齐准备项
+
+先执行 [准备清单与自动补齐流程](WINDOWS-IPHONE-PREPARATION.md)，再运行下文依赖 Python/Node 的工具。由 Codex 检查并复用现有软件，在已授权范围自动安装必要缺项、建立独立环境、回读验证。只有确实需要本人确认的系统弹窗/操作或缺失输入才提示；完成后继续本页，不止于准备报告。已经联网的系统代理/TUN、生产内核及其他项目环境保持，安装要求重启/切网时先说明影响并保存进度。手机未连接时仍可完成电脑阶段。
+
 ## 一、先让 Windows 完成配置
 
 1. 读取 AGENTS、[WINDOWS](WINDOWS.md)、[PORTABILITY](PORTABILITY.md)、[LEAK-PROTECTION](LEAK-PROTECTION.md)。在原生 PowerShell 操作，不用 WSL。先检查本机已安装的 Python、Node、curl、Verge/Mihomo/Claude/Chrome 版本和真实路径。

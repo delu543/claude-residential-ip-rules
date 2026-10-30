@@ -35,7 +35,7 @@ Codex 可以自动读取和配置，但**首次仍需明确哪份是住宅订阅
 
 ## Windows 电脑与 iPhone 连续配置
 
-使用 [两阶段实施说明](docs/WINDOWS-IPHONE.md) 和 [可直接复制的完整提示词](docs/WINDOWS-IPHONE-PROMPT.md)。先在目标 Windows 完成配置与核验，再经 USB 识别、配对、传输手机候选；缺少手机不会重做电脑配置。`windows_phone.py` 每次手机操作前重新检查电脑状态，`mobile_usb.py doctor` 只读检查 Apple 设备服务与 USB。系统信任、VPN 批准及无接口时的手机导入点击仍由用户完成。
+使用 [准备清单与自动补齐流程](docs/WINDOWS-IPHONE-PREPARATION.md)、[两阶段实施说明](docs/WINDOWS-IPHONE.md) 和 [可直接复制的完整提示词](docs/WINDOWS-IPHONE-PROMPT.md)。Codex 先检查软件、依赖和权限，自动处理已授权的必要缺项；本人只处理系统确认、登录/付费或无操作接口的步骤。准备完成后继续 Windows 配置与核验，再经 USB 识别、配对、传输手机候选；缺少手机不会重做电脑配置。`windows_phone.py` 每次手机操作前重新检查电脑状态，`mobile_usb.py doctor` 只读检查 Apple 设备服务与 USB；不把检查命令称为全自动安装器。全过程保留现有可用网络和恢复记录。
 
 ## iPhone + Shadowrocket：Windows / Mac 辅助配置（实验阶段）
 

@@ -4,7 +4,7 @@
 
 先读 [通用化与个人参数](PORTABILITY.md) 和 [客户端边界](CLIENTS.md)。本仓库不提供订阅、住宅IP或账号，不复制作者的地址和路径。默认Chrome，不改Edge。
 
-还要接 iPhone 时，完成本页电脑步骤后进入 [Windows → USB iPhone](WINDOWS-IPHONE.md)；可直接使用其中的 Codex 提示词。
+还要接 iPhone 时，先执行 [软件/依赖/权限准备清单](WINDOWS-IPHONE-PREPARATION.md)，完成本页电脑步骤后进入 [Windows → USB iPhone](WINDOWS-IPHONE.md)；可直接使用其中的 Codex 提示词。依赖缺失由已获授权的本机 Codex 核实并补齐，不要求用户逐条手工安装。
 
 ## 0. 前置网络检查，任何写入之前
 

@@ -4,6 +4,8 @@
 
 先读 README.md、docs/PORTABILITY.md、docs/SETUP.md 和 docs/CLIENTS.md。只在用户授权的目标电脑操作。普通订阅和住宅订阅属于不同费用/路由边界，绝不互作备用。默认只有 Claude 住宅；ChatGPT/Codex 普通美国优先（ChatGPT 住宅仅显式 opt-in）。不要承诺住宅纯净、独享或不封号。
 
+Windows + iPhone 请求先执行 docs/WINDOWS-IPHONE-PREPARATION.md，软件/依赖缺失时不能直接运行依赖它们的Python工具。先盘点当前联网与权限；已获配置授权时自动复用/安装缺少的必要组件到适当独立环境，核实来源和结果，不只输出待安装清单。已有软件不一律升级或重装，不擅自重启/切网络/占住宅下载流量。UAC、信任、VPN、登录、付费或无界面能力等真实外部门槛才提示本人，记录.private进度，确认后重新检查并继续后续配置，不重跑已成功步骤。安装/准备成功不等于设备网络已验收。
+
 ## 必须遵循的实施顺序
 
 1. 用 `manage.py inspect` 读取当前 profile 与真实路径。不打印 URL、UUID、密码、完整配置或用户聊天。确认 OS、Verge、Mihomo 版本、进程路径和节点角色。macOS 和原生 Windows 已有实现；Windows 先读 docs/WINDOWS.md 并用 windows_setup.py，WSL/Linux/未知平台需另做网络适配。
