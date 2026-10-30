@@ -43,7 +43,7 @@ Changed Existing Capabilities：安装器从Mac-only扩展平台分派；Windows
 回归覆盖：端口占用与复用、普通本地订阅、非VLESS节点、非US出口国家、无Codex、domain-only空正则防护、地区/DNS个性化、Chrome默认无DNS改动、基线失败停止、超时恢复与备份冲突。原住宅失败拒绝/普通跨地区fallback继续用隔离Mihomo验证。模板保留空个人字段，不能直接应用。
 
 Changed Existing Capabilities：端口由默认常量改为自动选择且稳定保存；Windows的TUN/DNS全面验收从安装必需改为后续可选；固定住宅不自动换节点、数据保留和逆序回退不变。
-# 2026-10-29 手机/USB 候选增量（本地，未手机验收）
+# 2026-10-29 手机/USB 实验版本（未手机验收）
 
 - Python：54 项，53 通过、1 项原生 Windows 注册表检查在 Mac 跳过；其中新增手机/USB 23 项通过。
 - Node：16 项，15 通过、1 项 Windows 独立恢复进程检查在 Mac 跳过。新增无 require/文件系统环境的 Verge 脚本回归。
@@ -51,4 +51,4 @@ Changed Existing Capabilities：端口由默认常量改为自动选择且稳定
 - USB 依赖：独立 Python 3.12.14 / OpenSSL 3.5.8、pymobiledevice3 11.48.0 导入与调用签名核对通过。没有发起真实设备配对、导出或写入。
 - 模拟 USB：只选 USB、歧义拒绝、Documents 路径/文件类型/大小、版本漂移停止、传输读回、损坏回执、重复写入拒绝、无共享不退回完整容器。
 - 未验证：iPhone Shadowrocket 2.2.93（3488）的 Documents 共享、实际节点导出格式、原生编译/分组/DNS/STUN、真实故障与回滚；用户选择之后再连接手机。
-- 当前增量尚未推送，没有本增量的 GitHub CI 结果。上述离线结果不可作为手机全自动安装或防泄露成功证明。
+- 本增量作为实验版本发布，手机实机验收另行进行。各提交的跨平台 CI 状态见 [GitHub Actions](https://github.com/delu543/claude-residential-ip-rules/actions/workflows/test.yml)，不能把旧提交的 CI 结果用于新提交。上述离线结果及 CI 通过均不可作为手机全自动安装或防泄露成功证明。
