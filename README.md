@@ -1,96 +1,79 @@
 # Claude 网络住宅 IP 配置规则
 
-给 Codex 使用的 **macOS / Windows + Clash Verge Rev / Mihomo** 本地配置工具与实施说明。把两份订阅合并进一个运行配置，分别使用各自节点，不需要手动切换订阅卡片，也不是把两份订阅串联中转。
+**让本地 Codex 先识别环境，再按流量用途配置代理。** 支持一个或多个节点来源，不要求恰好两份订阅，也不要求一定购买住宅套餐。仓库名称保留；住宅只是用户可以选择的一种 Claude 出口，不是节点质量证明。
 
-**此仓库不提供住宅 IP 或订阅，也不保证防封号。** 复用的是分流策略，不是作者的账号、IP、节点、订阅密钥或电脑路径。你需要自己拥有普通订阅和固定住宅订阅。
+入口：[完整通用提示词](docs/UNIVERSAL-PROMPT.md) · [通用实施流程](docs/UNIVERSAL.md) · [DNS / WebRTC](docs/LEAK-PROTECTION.md)。这里只发布策略与工具，不提供节点、凭据，不保证账号不被停用。
 
-## 流量如何分配
+## 分流原则
 
-| 请求 | 路线 | 故障行为 |
+| 用途 | 路线 | 失败处理 |
 |---|---|---|
-| Claude 已识别客户端/Claude Code、Claude 域名 | 单个指定住宅节点 | 不换节点、不直连 |
-| 发往本机专用代理入口的请求，包括下载 | 同一个指定住宅节点 | 代理失败则请求失败 |
-| ChatGPT、Codex、Twitter、YouTube、普通外网 | 普通订阅：美国优先 → 其他地区 | 不占住宅额度；普通线路全故障时拒绝 |
-| 国内网站、微信常见国内连接、私网 | DIRECT | 不消耗代理套餐；按请求目标识别，并非微信进程一律直连 |
+| 已识别的 Claude 请求、受支持客户端及专用代理入口 | 用户明确选定的一个固定节点 | 请求失败，不切其他节点、不直连 |
+| ChatGPT、Codex、Twitter、YouTube、普通外网 | 用户选定的普通节点池，可来自多份订阅 | 默认美国优先，再尝试其他普通节点；不借 Claude 专线 |
+| 国内及内网请求 | 按用户所在地区、现有本地规则与企业网络确定 DIRECT | 不粗暴把整个微信或整个浏览器归类 |
 
-实际联网路径：`Claude → 本机专用代理 → 固定住宅节点 → 目标网站`；`普通外网 → 本机 Clash → 普通订阅节点 → 目标网站`。在规则模式下同时生效，不需要前台“切换代理组”。美国优先按节点名称匹配，必须校对 `usPattern`；标签不是物理位置证明。健康检查有周期，切换不是零延迟。
+一份订阅里的多个节点也可以分别承担角色。专线专用的来源不进入普通池；混合套餐需要明确标记 `mixed` 并选定节点。节点名称不是住宅/地理/计费身份的证明。仅有一个节点又要求“专线不供普通外网使用”时，普通外网无法同时获得代理服务；工具不会偷偷直连或共用，而会要求明确接受普通流量拒绝，或补充普通节点。
 
-## 直接交给 Codex
+## 当前能自动到哪一步
 
-在目标 Mac 或 Windows 电脑克隆仓库后，把下面这段发给 Codex：
+| 实际客户端/设备 | 生成与配置路径 | 实机边界 |
+|---|---|---|
+| Windows / Mac，Clash Verge Rev + Mihomo | 自动发现本地 profile，通用清单生成，多来源候选；接现有备份、校验、热加载、客户端与回滚工具 | 必须核验目标版本、浏览器与真实连接链 |
+| 其他真实 Mihomo 客户端，例如桌面或 Android 的兼容客户端 | 从该客户端原生导出生成 Mihomo JSON（YAML 兼容）候选 | 先用其实际内核编译，再走该 App 正式导入；不猜写内部配置库 |
+| iPhone，Shadowrocket | 原生导出 → 多来源 `.conf`；可复用 Windows/Mac USB Documents 传输 | 实验适配，原生导入、VPN、DNS/STUN 尚需接机验收 |
+| Mac / iPhone，Surge | 原生导出 → 独立 Surge `.conf`，含原生 STUN 拒绝规则 | 新增实验适配；目前限 HTTP/HTTPS/SOCKS5/SS/Trojan 的已支持参数；未实机 |
+| sing-box、Quantumult X、Loon、其他未知引擎/格式 | 先盘点官方导出/导入、格式和能力，保存本地计划 | 没有通用写入器；不把别的语法硬塞进去，不擅自换客户端 |
 
-> 请读取本仓库 AGENTS.md、docs/SETUP.md；Windows 另读 docs/WINDOWS.md。在我的电脑上配置 Clash Verge，读取真实版本、订阅、脚本、节点和应用路径，使用我自己的两份订阅。只有 Claude 固定住宅，失败不换节点不直连；其他外网优先普通美国节点，失效可用其他普通地区，国内直连。配置 DNS 接管和浏览器 WebRTC 防泄露，不把整个浏览器改走住宅。先备份、生成候选并隔离测试，再应用、验证实际客户端和浏览器。不要启用 LuLu、改变时区或终止工作。缺少订阅身份或固定出口信息时再问，不能猜测。不上传私有配置；未通过的验收明确列出。
+**通用的是角色模型、检测顺序和验收要求，不是“所有 App 共用一种文件、所有手机权限都可自动批准”。** 有可用本地工具时 Codex 继续执行受支持的配置步骤；没有真实设备或原生接口的步骤明确待验证，不能伪造成功。不能把 Android、iOS、桌面 Chrome 的 WebRTC 设置互相替代。
 
-Codex 可以自动读取和配置，但**首次仍需明确哪份是住宅订阅、固定哪个节点、预期出口 IP**。操作系统权限提示需用户自己批准。未知 Claude Desktop 版本不能冒充已完成适配。
+## 先检查，再配置
 
-## DNS / WebRTC 防泄露与平台限制
+在目标机使用 [通用提示词](docs/UNIVERSAL-PROMPT.md)。Codex 先检查现有网络、客户端、浏览器、版本、节点与权限，复用已装软件；只补齐必要且已授权的依赖。未知角色、实际权限提示、付费和工作中应用退出等实质门槛才请求用户。
 
-**浏览器的 WebRTC 防护必须单独配置，分流规则本身不足以阻止 STUN 暴露直连地址。** 无需把整个浏览器或检测网站改走住宅。Chrome 运行 `python3 scripts/browser_privacy.py apply` 后，在 `chrome://policy` 重新加载并实际复测。Windows 已提供双订阅、命名管道热加载、Desktop 官方注册表、原生 Code、Chrome/Edge 和 DNS 检查流程，见 [Windows 完整入口](docs/WINDOWS.md)。Edge 使用不同的正式政策键。CI 不代替目标机浏览器、客户端及系统服务验收。
-
-2026-10-29 起默认 **只有 Claude 走住宅**，ChatGPT 改走普通订阅。旧用户若确实需要保留 ChatGPT 住宅，可在私有设置显式添加 `"chatgptResidential": true`；更新代码不会自动修改正在运行的电脑，需要重新 prepare、审阅、apply。
-
-## Windows 入口
-
-先读 [通用适配说明](docs/PORTABILITY.md) 和 [Windows流程](docs/WINDOWS.md)。默认先验证可用系统代理，不要求先开TUN；Chrome WebRTC先配置，DNS接管与TUN后续独立验收。`scripts/windows_setup.py` 统一执行 prepare / apply / check / rollback；先用 `manage.py init` 从本机生成私有设置。原生 Windows Python 需要安装 `requirements.txt` 中的 PyYAML，不能套用 WSL 网络。系统权限批准、真实节点身份和有效浏览器政策检查不能跳过。
-
-## Windows 电脑与 iPhone 连续配置
-
-使用 [准备清单与自动补齐流程](docs/WINDOWS-IPHONE-PREPARATION.md)、[两阶段实施说明](docs/WINDOWS-IPHONE.md) 和 [可直接复制的完整提示词](docs/WINDOWS-IPHONE-PROMPT.md)。Codex 先检查软件、依赖和权限，自动处理已授权的必要缺项；本人只处理系统确认、登录/付费或无操作接口的步骤。准备完成后继续 Windows 配置与核验，再经 USB 识别、配对、传输手机候选；缺少手机不会重做电脑配置。`windows_phone.py` 每次手机操作前重新检查电脑状态，`mobile_usb.py doctor` 只读检查 Apple 设备服务与 USB；不把检查命令称为全自动安装器。全过程保留现有可用网络和恢复记录。
-
-## iPhone + Shadowrocket：Windows / Mac 辅助配置（实验阶段）
-
-新增 [手机实施入口](docs/MOBILE.md) 和 [USB 工具](docs/MOBILE-USB.md)。Windows / Mac 上的 Codex 可以离线生成原生 `.conf` 候选、检查两类节点边界，并在受信任 USB 连接、App 开放文件共享的条件下导出或传入文件。手机与电脑共用 `src/policy.json` 的 Claude/OpenAI 域名定义，协议语法分别生成。
-
-**尚未完成 iPhone 原生引擎实测；不能称为手机全自动安装器。** 数据线不会授予跨 App 私有数据权限，文件传输不等于配置启用。用户需要批准 iOS 信任/VPN 请求；是否能由代理操作导入界面，要先确认实际设备接口。当前手机适配按已知目标域名分流，不能等同于电脑进程规则，也不能承诺关闭 VPN 后仍阻止 Claude 直连。请先读能力边界再实施，不要直接在正在使用 Claude 的手机上试验。
-
-本次公开的是实验工具与离线测试结果。**待接机验证**：USB 配对和文件共享、实际订阅导出格式、Shadowrocket 原生编译/启用、住宅及普通线路分流、DNS/WebRTC、线路失效与恢复。下载或更新仓库不会自动执行这些步骤，也不会修改正在运行的电脑网络。
-
-## macOS 快速命令
-
-要求 Python 3.9+、Node.js 18+、curl、已安装的 Clash Verge Rev；YAML 读取使用 macOS Ruby，或你自己的 Python 环境中的 PyYAML。运行测试不需要账号。
-
-```bash
-python3 scripts/manage.py inspect
-# UID 和节点名从 inspect 获得；预期公网出口先用隔离代理核验。
-python3 scripts/manage.py init --residential-uid RES_UID --ordinary-uid NORMAL_UID \
-  --node '你的固定住宅节点' --expected-ip '你的住宅公网IP'
-# 仅在本地审阅 .private/settings.json，核对普通订阅身份、路径、DNS。
-python3 scripts/manage.py prepare
-# 先按 docs/SETUP.md 完成隔离验证，再执行下面的应用命令。
-python3 scripts/manage.py apply
-python3 scripts/clients.py plan
-# Claude 正常退出后，才配置客户端；不会自动杀进程。
-python3 scripts/clients.py apply
-python3 scripts/manage.py check
-# Claude Code 从此入口启动，包含启动出口校验：
-python3 scripts/clients.py code -- --help
+```sh
+# Python 可执行名以目标机为准；discover只读本机，报告写入私有目录。
+python scripts/universal.py capabilities
+python scripts/universal.py discover --output .private/discovery-1
+# 已确认是本机 Clash Verge 后，自动读取所有可解析的本地节点来源。
+python scripts/universal.py draft --adapter clash-verge --manifest .private/universal.json
+# Codex 根据私有盘点补全角色、实际版本、出口、地区及DNS/WebRTC方案。
+python scripts/universal.py prepare --manifest .private/universal.json --output .private/candidate-1
+python scripts/universal.py check --manifest .private/universal.json --output .private/candidate-1
 ```
 
-`prepare` 只生成候选与本地备份，不改运行配置；`apply` 才修改当前住宅订阅的扩展脚本和运行配置并热加载。仅语法通过不代表网络验收通过。**本工具会重建所选配置的 rules、proxy-groups 和 DNS 路由策略**，有企业内网/自定义规则时必须先合并审阅，不能盲目覆盖。TUN 已启用时补齐 UDP/TCP 53 接管；Windows严格DNS额外参数仅显式选择，绝不由脚本强制开启TUN。系统代理、其他监听器保持现状，由 Codex 核实是否捕获到目标进程；本工具不自动开启系统网络扩展。
+`draft` 不猜哪个套餐属于专线。`prepare` 只生成新候选，不改变系统代理/TUN/DNS/客户端。通用候选与实际安装计划是两个目录，不能互相覆盖。后续部署命令和各客户端恢复步骤见 [实施流程](docs/UNIVERSAL.md)。
 
-## 限制必须知道
+当前通用模式把获准节点生成**私有快照**：不依赖 GUI 当前选中了哪张订阅卡，也不串联两个套餐。普通池不会在订阅更新时悄悄扩大范围。供应商更改节点后，要重新读取、校对出口及角色、生成新计划；旧参数失效不会自动换节点。原双订阅 HTTP/file provider 的动态更新模式作为兼容入口保留，新用户优先通用模式。
 
-- 这是代理分流与客户端代理设置，**不是独立系统防火墙**。代理遵从客户端在本机代理不可用时请求失败，但任意忽略代理的子进程、外部浏览器、远程容器/服务器不在完整保障范围。若要求全部进程在 Clash 完全退出后也无法直连，需要额外系统隔离，不能仅靠本仓库承诺。
-- 已知 Claude 进程的 UDP 被拒绝；私网 TCP 保留。通过自动分配的专用端口的所有请求（即使下载自通用 CDN）都走住宅。共享 Node/Python 进程不粗暴归类，需验证启动环境和实际连接。
-- 启动检查是时间点检查，不是持续 IP 锁。运营商在同一入口后更换出口时，已运行连接不一定立即停止。脚本固定的是入口，独享、住宅和长期静态属性要由服务商保证。
-- 公共域名规则不能识别所有“间接相关”请求；Claude 服务端代发的请求不经过你的 Mac。当前方案不会假装能够控制它们。
-- DNS 对 Claude 走住宅解析，对 ChatGPT/Codex/普通外网走普通解析，国内和节点引导 DNS 独立。代理端的远端解析取决于服务商，不能承诺 DNS 检测一定显示同一个出口 IP。
-- 没有广告过滤、解密 HTTPS、安装证书、LuLu、系统时区修改或后台监控。
+## DNS 和 WebRTC 分开处理
 
-## 验证、恢复和维护
+- Mihomo 对 Claude、普通外网、直连目标分别配置解析路径；独立节点引导 DNS 避免循环。只有真的进入内核的请求才受它控制。
+- 桌面 Chrome/Edge 用正式浏览器政策，检查有效政策再测 STUN，不为检测绿勾把整个浏览器或检测站改走专线。
+- Shadowrocket 使用原生 Disable STUN 选项并实际验证；Surge 使用 `PROTOCOL,STUN,REJECT`。Mihomo 手机客户端没有浏览器政策写入器，可在用户了解音视频影响后选择拒绝进入该 VPN 的 UDP；这不是全系统防火墙。
+- 手机原生适配使用用户明确选择的 IP 字面量 DoH，避免解析服务引导依赖系统 DNS；它不保证递归 DNS IP 等于 Claude 出口。手机应用自身 DoH、IPv6、Wi-Fi/蜂窝与 VPN 关闭均须另验。
+- 不为了安装先开 TUN，不自动关闭浏览器 DoH；已有健康网络保留。Windows TUN 可选试验先启动独立本地恢复进程，不依赖在线 Codex 才能回退。
 
-见 [实施流程](docs/SETUP.md)、[客户端边界](docs/CLIENTS.md)、[测试记录](docs/VALIDATION.md)、[来源与许可](docs/SOURCES.md)。
+[完整隐私边界与测试方法](docs/LEAK-PROTECTION.md)。住宅/独享/静态属性由服务商和实际观测确定；固定代理入口不是持续公网 IP 锁，不能防止服务商在入口之后改变出口。
 
-```bash
-node --test tests/routing.test.cjs
-python3 -m unittest discover -s tests -p 'test_*.py'
-# 停止客户端后回退客户端设置（如本次配置过）：
-python3 scripts/clients.py rollback
-python3 scripts/manage.py rollback
+## 手机与 USB
+
+手机每台独立生成清单，使用手机自己的订阅/导出，不复制电脑路径、端口或账号。iPhone 系统信任、VPN 批准、商店登录或购买必须由本人完成。Shadowrocket 的 USB 工具只访问获准的 Documents 文件共享，不读取完整容器/备份。其他 App 走自己的正式文件导入；Android 也使用原生导出/导入，不自动开启 USB 调试、root 或安装不明 APK。
+
+手机未连接时可完成主机准备和离线候选，但不能称手机已配置。已授权且有设备工具时继续导入、验证；没有 UI 工具时提示用户完成具体界面动作并续接。
+
+[手机流程](docs/MOBILE.md) · [USB](docs/MOBILE-USB.md) · [Windows+iPhone准备](docs/WINDOWS-IPHONE-PREPARATION.md) · [Windows+iPhone顺序执行](docs/WINDOWS-IPHONE.md)
+
+## 兼容、验收与恢复
+
+原 `manage.py init` 双来源入口、Mac/Windows 客户端设置、浏览器政策、USB 工具和冲突保护仍保留，详见 [SETUP](docs/SETUP.md)、[Windows](docs/WINDOWS.md)、[客户端](docs/CLIENTS.md)。内部旧字段/组名中的“住宅”保留以兼容既有部署，不表示程序鉴定了住宅属性。
+
+这不是独立系统防火墙。Clash/VPN 退出后，忽略代理的进程、任意工具子进程或手机原生应用不能仅凭分流规则保证不直连。要求这一层时必须另做系统/设备隔离，不以改配置文案冒充实现。共享 CDN 的第三方请求也不能仅凭域名自动全部归属 Claude。
+
+```sh
+node --test tests/routing.test.cjs tests/controller.test.cjs tests/watchdog.test.cjs
+python -m unittest discover -s tests -p 'test_*.py'
+# 可选：真实内核、全本机假上游，既不停止主代理也不消耗套餐。
+python tests/integration.py --mihomo /path/to/mihomo --snapshots
 ```
 
-模板中的节点、IP、端口、路径均留空，由init从目标电脑生成；本机回环地址不是住宅节点。端口自动选且检查冲突，普通订阅支持远程URL/本地节点文件，地区与DNS可定制；详见[通用适配](docs/PORTABILITY.md)。
-
-所有订阅凭据、备份、生成脚本和本地报告在 `.private/`，默认忽略且权限收紧。不要把整份 Clash 配置、日志或 `.private` 上传到 Issue。订阅更新会重新执行持久扩展脚本；住宅入口身份不匹配会变成 REJECT，不自动挑其他住宅节点。普通 provider 按自身周期更新；订阅 URL 变更需重新生成计划。运行计划不能重复使用：后续修订用 `--plan .private/plan-2`，保留旧备份。
-
-MIT 许可适用于本仓库原创工具与文档。Mihomo、Clash Verge 及其数据规则库保持各自许可；此仓库不捆绑它们。
+[验证记录](docs/VALIDATION.md) · [能力变更](docs/CAPABILITY_MAP.md) · [来源和许可](docs/SOURCES.md)。所有私有清单、节点、备份和回执留在 `.private/`，不要提交到 GitHub。MIT 只覆盖本仓库原创实现；不捆绑第三方客户端或规则库。

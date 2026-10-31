@@ -70,6 +70,10 @@ async def stage(service, settings, output, target):
     if receipt_path.exists():
         raise ValueError('Bundle already has a transfer receipt; inspect it before another transfer')
     o = json.loads(mobile.read(settings))
+    if o.get('schema') == 2:
+        if o['target']['adapter'] != 'shadowrocket':
+            raise ValueError('This USB bridge only stages Shadowrocket; use the selected app official import path')
+        o = {'shadowrocketVersion':o['target']['version'], 'iosVersion':o['target']['osVersion']}
     actual = target.get('shadowrocketVersion', '')
     expected = re.match(r'\d+\.\d+\.\d+', o['shadowrocketVersion'])
     if not expected or expected.group() != actual or o['iosVersion'] != target.get('iosVersion'):

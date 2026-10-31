@@ -1,5 +1,8 @@
 # iPhone + Shadowrocket
 
+> New installations: start with [Universal setup](UNIVERSAL.md) and the [single maintained prompt](UNIVERSAL-PROMPT.md). Detect the actual device/client and any number of sources first. This page documents a specific adapter or the legacy two-source workflow; it is not a universal client/subscription requirement.
+
+
 状态：**原生配置候选生成已实现；iPhone 实机验收未完成**。目标版本来自用户：2.2.93（3488）。iOS 版本由接线后的设备读取，不以“最新版”替代真实版本。操作入口是 Windows 或 Mac 上的 Codex + USB，见 [USB流程](MOBILE-USB.md)；Windows 先完成 [电脑再手机流程](WINDOWS-IPHONE.md)。手机分支不运行电脑的 `manage.py apply`，不修改电脑的工作网络。
 
 ## 能力与边界
@@ -18,9 +21,9 @@
 
 ## 输入从目标用户取得
 
-1. 将用户自己的两份订阅导入小火箭，明确普通与住宅角色；订阅名称不能证明线路属性。确认住宅固定节点和允许的实际出口 IP。
+1. 将用户自己的一个或多个来源导入实际使用的小火箭，明确固定Claude及普通角色；订阅名称不能证明线路属性。确认固定节点和允许的实际出口IP。多来源走universal，下面旧init命令仅为双来源兼容示例。
 2. 保留原配置名称、原节点和原开关状态，导出可恢复副本。先验证普通线路能用，不在配置第一步全局代理或大范围改 DNS/TUN。
-3. 使用客户端真实导出的原生节点参数。生成器当前接受含 `[Proxy]` 的 Shadowrocket `.conf` 节点快照；住宅与普通分别提供一个文件。**小火箭“导出配置”可能只有规则，“导出节点”可能是 JSON。缺少 `[Proxy]`、未知 JSON、URI、Clash YAML 不会被当作已适配。** 需按该版本真实格式另做经过验证的适配；不能猜字段或把私有订阅发送给在线转换网站。
+3. 使用客户端真实导出的原生节点参数。生成器接受含 `[Proxy]` 的Shadowrocket `.conf`快照；universal支持任意数量文件及同来源mixed分节点。**小火箭“导出配置”可能只有规则，“导出节点”可能是JSON；缺少 `[Proxy]`、未知JSON/URI/Clash YAML不会被当作已适配。** 按真实格式另做经过验证的适配，不猜字段或发送在线转换网站。
 4. 规则基线用该用户小火箭内置 `default.conf` 或其明确审阅的无广告分流配置，导出到本地。只接受明确 DIRECT/PROXY 的域名、IP/Country 规则；脚本、自定义 Host（默认 localhost 映射可保留）、重写、远程 RULE-SET 或自定义组先独立审阅，不能悄悄丢掉。
 
 这条输入边界意味着当前版本不是“任意订阅格式一键转换器”。相同源/同 endpoint 混入普通线路会拒绝生成；这是防止误用套餐，不能证明供应商后台无共享或出口不变。

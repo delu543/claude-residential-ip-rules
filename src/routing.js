@@ -3,20 +3,26 @@ function build(config, o) {
   const fixed = '住宅固定节点', claude = 'Claude 固定出口';
   const normal = o.preferredPattern ? '普通外网（优先地区）' : '普通外网（美国优先）';
   const us = o.preferredPattern ? '普通·优先地区' : '普通·美国', other = '普通·其他地区';
-  const preferredPattern = o.preferredPattern || o.usPattern;
+  const preferredPattern = o.ordinaryPreferredFilter || o.preferredPattern || o.usPattern;
   const gpt = o.chatgptResidential === true ? 'ChatGPT 住宅出口' : 'ChatGPT 普通出口';
-  const provider = 'ordinary-only';
   const clone = x => JSON.parse(JSON.stringify(x));
   config = clone(config);
-  const candidates = (config.proxies || []).filter(p =>
+  const candidates = (o.fixedNode ? [o.fixedNode] : (config.proxies || [])).filter(p =>
     p.name === o.residential.name && p.server === o.residential.server &&
     p.port === o.residential.port && p.type === o.residential.type);
   // A missing/renamed entrance becomes REJECT. Throwing in a Verge extension
   // alone is insufficient: some versions skip failed extensions.
   const node = candidates.length === 1 ? {...candidates[0], name: fixed} : {name: fixed, type: 'reject'};
   if (node['dialer-proxy']) throw new Error('Chained residential entrance needs a separate reviewed setup');
-  config.proxies = [...(config.proxies || []).filter(p => p.name !== fixed), node];
-  config['proxy-providers'] = {...(config['proxy-providers'] || {}), [provider]: clone(o.ordinaryProvider)};
+  if (o.fixedNode && ((config.tunnels || []).length || Object.keys(config['sub-rules'] || {}).length))
+    throw new Error('Custom tunnels/sub-rules need separate preservation review');
+  config.proxies = o.fixedNode ? [node] : [...(config.proxies || []).filter(p => p.name !== fixed), node];
+  // Universal plans use reviewed inline snapshots, independent of the selected
+  // GUI subscription. Legacy remote/file providers remain supported.
+  const providers = o.ordinaryProviders || {'ordinary-only': o.ordinaryProvider};
+  const providerNames = Object.keys(providers);
+  config['proxy-providers'] = {...(o.fixedNode ? {} : (config['proxy-providers'] || {})), ...clone(providers)};
+  if (o.fixedNode) config['rule-providers'] = {};
   const health = {type: 'fallback', url: 'https://www.gstatic.com/generate_204',
     interval: 180, timeout: 4000, 'max-failed-times': 2, 'expected-status': 204, lazy: false};
   config['proxy-groups'] = [
@@ -24,8 +30,8 @@ function build(config, o) {
     {name: gpt, type: 'select', proxies: [o.chatgptResidential === true ? fixed : normal]},
     // REJECT is first so that an all-dead set never resolves to DIRECT/COMPATIBLE.
     {name: normal, ...health, proxies: ['REJECT', us, other]},
-    {name: us, ...health, proxies: ['REJECT'], use: [provider], filter: preferredPattern},
-    {name: other, ...health, proxies: ['REJECT'], use: [provider], 'exclude-filter': preferredPattern}
+    {name: us, ...health, proxies: ['REJECT'], ...(providerNames.length ? {use: providerNames} : {}), filter: preferredPattern},
+    {name: other, ...health, proxies: ['REJECT'], ...(providerNames.length ? {use: providerNames} : {}), 'exclude-filter': preferredPattern}
   ];
   config.mode = 'rule';
   config['find-process-mode'] = 'always';
@@ -40,10 +46,12 @@ function build(config, o) {
   const directGeosites = o.directGeosites || (directCountries.includes('CN') ? ['cn'] : []);
   // Verge cannot read files: manage.py embeds this same policy in rendered scripts.
   const policy = typeof ROUTING_POLICY !== 'undefined' ? ROUTING_POLICY : require('./policy.json');
-  const claudeDomains = policy.claudeDomains;
+  const claudeDomains = [...new Set([...policy.claudeDomains, ...(o.extraClaudeDomains || [])])];
   const openaiDomains = policy.openaiDomains;
   const hosts = '(OR,(' + openaiDomains.map(d => `(DOMAIN-SUFFIX,${d})`).join(',') + '))';
   config.rules = [
+    ...(o.rejectAllUdp === true ? ['NETWORK,udp,REJECT'] : []),
+    ...claudeDomains.map(d => `AND,((NETWORK,udp),(DOMAIN-SUFFIX,${d})),REJECT`),
     ...(cp ? [`AND,((NETWORK,udp),(PROCESS-PATH-REGEX,${cp})),REJECT`,
     `AND,((PROCESS-PATH-REGEX,${cp}),(NOT,((GEOIP,private)))),${claude}`] : []),
     ...claudeDomains.map(d => `DOMAIN-SUFFIX,${d},${claude}`),
@@ -58,6 +66,8 @@ function build(config, o) {
     ...directCountries.map(c => `GEOIP,${c},DIRECT,no-resolve`), `MATCH,${normal}`
   ];
   const existing = config.listeners || [];
+  if (o.fixedNode && existing.some(l => l.name !== 'claude-only-http' && (l.proxy || l['rule-set'])))
+    throw new Error('Another listener depends on existing policies; review before replacing them');
   if (existing.some(l => l.port === o.port && l.name !== 'claude-only-http'))
     throw new Error('Dedicated port conflicts with another listener');
   config.listeners = [...existing.filter(l => l.name !== 'claude-only-http'),

@@ -1,5 +1,9 @@
-# 可直接发给目标 Windows 电脑上的 Codex
+# Windows 与 iPhone：使用统一提示词
 
-复制下面整段；在目标 Windows 本地 Codex 执行，不能只用无本地工具的云端对话。无需用户先手工安装所有依赖：准备清单由 Codex 检查、自动补齐后继续执行。
+完整提示词的唯一维护位置已改为 [UNIVERSAL-PROMPT.md](UNIVERSAL-PROMPT.md)。直接复制其中整段；它会先检测操作系统、客户端、浏览器和节点来源，不再要求两份订阅或默认小火箭。
 
-> 请读取并在本机执行仓库最新版：https://github.com/delu543/claude-residential-ip-rules 。这是 Windows 电脑，使用 Chrome；手机是通过数据线连接的 iPhone，使用 Shadowrocket。先读 AGENTS.md、docs/WINDOWS-IPHONE-PREPARATION.md、docs/WINDOWS-IPHONE.md 及关联说明。我授权你在这台电脑检查并自动补齐本任务所需的缺失软件、独立环境依赖和配置：先复用兼容的已装软件，核实官方来源/精确安装对象再安装，安装后重新检查；不要只给我安装清单或完成检查后停下。系统UAC、iPhone信任、VPN授权、登录/商店确认、缺少关键输入或没有界面操作能力时，再提示我完成最少必要动作，保存进度并在我完成后继续，不自动付费。先记录现有网络和旧回执，只修缺失/漂移项，不重装工作中的内核/驱动，不批量升级、不自动重启。下载走普通线路或可用直连，不擅自占住宅套餐；需要改变当前联网方式或退出工作软件时先说明影响。第一阶段完成本机 Clash Verge 双订阅分流、Claude Desktop和已安装的原生Claude Code、Chrome WebRTC防泄露及按本机条件验证DNS。Claude已识别请求固定单个住宅节点，失败拒绝、不换节点、不直连；ChatGPT/Codex及其他外网走普通订阅，美国优先，可回退其他普通地区，绝不借住宅；国内/局域网直连。所有订阅角色、节点、出口、端口、路径和版本从本机核实，不复制作者参数。保留可用网络，不为安装先开TUN、不改时区、不关安全软件、不终止开发任务；可选TUN试验需说明短时影响并取得许可，先建立本地恢复机制。运行windows_setup.py check并验证真实客户端、浏览器政策和流量。第二阶段使用windows_phone.py doctor/devices/pair/probe检查Apple服务、USB、信任与手机实际版本，只操作选定iPhone的Shadowrocket Documents。用手机自己的普通/住宅订阅和原配置，备份、生成候选、传输并读回校验，再通过小火箭正式界面导入/编译/选择配置模式及STUN防护，取得本人VPN批准，验证住宅/普通/国内分流、DNS/WebRTC与故障恢复。没有文件共享则使用正式导出/导入，不读取完整手机备份或私有数据库。手机未连接先完成电脑，之后续接；手机问题不得破坏已完成的电脑网络。准备和执行状态保存在本地.private，确认后重新核验，不重跑成功步骤或覆盖备份。不要上传密钥、使用在线订阅转换器、保证不封号或把CI/传输成功当实机完成；最后分别报告电脑与手机的已验证项、未实测项和恢复方法。
+需要同时配置这两台设备时，可在通用提示词前补充：
+
+> 本次目标是这台 Windows 和通过数据线连接的 iPhone。先保持并完成电脑的可用网络配置与验证，再处理选定手机；每台设备使用自己的订阅和原生客户端。实际软件和权限请先检查，不要从我的描述猜版本。
+
+检测到 Windows + Clash Verge 与 iPhone + Shadowrocket 时，继续使用 [准备清单](WINDOWS-IPHONE-PREPARATION.md)、[顺序执行说明](WINDOWS-IPHONE.md) 和USB工具；其他客户端按 [通用实施](UNIVERSAL.md) 的能力分派走原生导入，不强行运行Verge/Shadowrocket专用工具。系统批准、真实设备验收和恢复要求不变。

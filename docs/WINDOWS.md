@@ -1,5 +1,8 @@
 # Windows + Chrome：先保持联网，再分阶段配置
 
+> New installations: start with [Universal setup](UNIVERSAL.md) and the [single maintained prompt](UNIVERSAL-PROMPT.md). Detect the actual device/client and any number of sources first. This page documents a specific adapter or the legacy two-source workflow; it is not a universal client/subscription requirement.
+
+
 目标电脑由本机Codex执行。**不要先开TUN来安装本仓库。** 系统代理和TUN是不同接管方式；系统代理可用、TUN不可用时，先保留能联网的系统代理。无需改动另一台正常电脑。只有目标电脑的诊断能确认其故障原因。
 
 先读 [通用化与个人参数](PORTABILITY.md) 和 [客户端边界](CLIENTS.md)。本仓库不提供订阅、住宅IP或账号，不复制作者的地址和路径。默认Chrome，不改Edge。

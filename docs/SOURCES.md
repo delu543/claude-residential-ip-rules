@@ -1,5 +1,15 @@
 # 来源、兼容性与许可
 
+## 2026-10-31 通用角色与原生适配
+
+- [Mihomo proxy-providers](https://wiki.metacubex.one/en/config/proxy-providers/)：复用正式inline/payload接口，多来源节点使用本地快照，没有下载或复制第三方生成器。隔离回归用已安装Mihomo v1.19.15；目标客户端/内核版本仍需原生编译。
+- [Surge原生策略](https://manual.nssurge.com/policies/overview.html)、[HTTP](https://manual.nssurge.com/policies/http.html)、[SOCKS5](https://manual.nssurge.com/policies/socks5.html)、[Shadowsocks](https://manual.nssurge.com/policies/shadowsocks.html)、[Trojan](https://manual.nssurge.com/policies/trojan.html)：新增原创保守解析器，仅接受明确支持的协议/参数，不转换小火箭或VLESS参数。
+- [Surge fallback](https://manual.nssurge.com/policy-groups/fallback.html)、[原生STUN规则](https://manual.nssurge.com/rules/protocol-and-network.html)、[加密DNS](https://manual.nssurge.com/dns/encrypted-dns.html)：按官方接口生成。Surge不是捆绑依赖；未安装/购买或完成实机验收。未知版本不得直接假定文档特性可用。
+- [Surge General](https://manual.nssurge.com/profile/general.html)：不自动启用include-all-networks；该选项可能影响USB/局域网，不用于无提示扩大范围。
+- Chrome/Edge与Shadowrocket继续使用下列既有正式接口/实验语法依据；桌面政策不推断为移动端支持。新代码无新增运行依赖；pymobiledevice3仍仅为可选USB环境。
+
+这些是原生接口的独立实现与设计借鉴，未抽取第三方代码或规则数据库；原创代码按仓库MIT许可。Surge、Shadowrocket、Clash/Mihomo及各浏览器保持自身许可。开源或文档存在不等于实机通过，适配边界以UNIVERSAL.md和VALIDATION.md为准。
+
 核对日期：2026-10-29。
 
 - [Clash Verge Rev 扩展脚本](https://www.clashverge.dev/guide/script.html)：复用现有 `main(config, profileName)` 接口，配置在订阅更新后重新生成，不只修改临时 runtime。此仓库没有复制该文档或应用源码。

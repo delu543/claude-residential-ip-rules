@@ -172,6 +172,9 @@ def resolve(settings, value):
 def build(settings):
     settings = Path(settings).resolve()
     o = json.loads(read(settings))
+    if o.get('schema') == 2:
+        from universal import build_shadowrocket
+        return build_shadowrocket(settings)
     if o.get('_template') or o.get('schema') != 1:
         raise ValueError('Initialize local settings; template cannot be used')
     paths = {k: resolve(settings, o.get(k)) for k in ('residentialFile', 'ordinaryFile', 'baselineFile')}
@@ -189,6 +192,11 @@ def build(settings):
     res_endpoints = {v['endpoint'] for v in r.values()}
     if any(n[x]['endpoint'] in res_endpoints for x in names):
         raise ValueError('Ordinary source overlaps residential endpoints; confirm source identities')
+    return render(o, source, fixed, n, names, read(settings))
+
+
+def render(o, source, fixed, n, names, settings_text):
+    """Native renderer shared by legacy and source-count-independent plans."""
     ipaddress.ip_address(o.get('expectedIp'))
     if not re.fullmatch('[A-Z]{2}', o.get('country', '')):
         raise ValueError('Expected exit country must be explicit')
@@ -196,7 +204,9 @@ def build(settings):
         if not isinstance(o.get(k), str) or not o[k].strip():
             raise ValueError('Record actual target device versions; never infer latest')
     preferred = re.compile(o.get('preferredPattern', r'(?i)\bUS\b|USA|United States|美国|美國|🇺🇸'))
-    ordered = [x for x in names if preferred.search(x)] + [x for x in names if not preferred.search(x)]
+    def is_preferred(x):
+        return bool(preferred.search(n[x].get('name',x)))
+    ordered = [x for x in names if is_preferred(x)] + [x for x in names if not is_preferred(x)]
     dns = o.get('directDns')
     if not isinstance(dns, list) or not dns:
         raise ValueError('Provide working encrypted DNS for domestic/bootstrap resolution')
@@ -231,8 +241,10 @@ def build(settings):
     aliases = [f'CR_NORMAL_{i:03}' for i in range(1, len(ordered) + 1)]
     output += [alias + ' = ' + n[name]['definition'] for alias, name in zip(aliases, ordered)]
     output += ['', '[Proxy Group]', CLAUDE + ' = select,' + FIXED,
-               NORMAL + ' = fallback,' + ','.join(aliases) + ',url=https://www.gstatic.com/generate_204,interval=600,timeout=5',
+               (NORMAL + ' = fallback,' + ','.join(aliases) + ',url=https://www.gstatic.com/generate_204,interval=600,timeout=5') if aliases else NORMAL + ' = select,REJECT',
                '', '[Rule]']
+    if o.get('rejectAllUdp') is True:
+        output += ['PROTOCOL,UDP,REJECT']
     # Reject QUIC/other UDP for known Claude destinations. Never fall back to direct UDP.
     output += [f'AND,((PROTOCOL,UDP),(DOMAIN-SUFFIX,{d})),REJECT' for d in protected]
     output += [f'DOMAIN-SUFFIX,{d},{CLAUDE}' for d in protected]
@@ -240,13 +252,15 @@ def build(settings):
     output += ['DOMAIN,localhost,DIRECT', 'DOMAIN-SUFFIX,local,DIRECT',
                'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve', 'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve',
                'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve', 'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve']
+    output += [f'DOMAIN-SUFFIX,{d},DIRECT' for d in o.get('directDomains',[])]
+    output += [f'GEOIP,{c},DIRECT,no-resolve' for c in o.get('directCountries',[])]
     output += base + ['FINAL,' + NORMAL, '', '[Host]', 'localhost = 127.0.0.1', '']
     conf = '\n'.join(output)
     report = {'schema': 1, 'status': 'candidate-not-phone-verified', 'configSha256': digest(conf),
-              'settingsSha256': digest(read(settings)), 'sourceHashes': {k: digest(v) for k,v in source.items()},
+              'settingsSha256': digest(settings_text), 'sourceHashes': {k: digest(v) for k,v in source.items()},
               'scope': 'VPN-active known destination domains; no per-app or VPN-off guarantee',
               'target': {k:o[k] for k in ('iosVersion','shadowrocketVersion')},
-              'ordinaryNodeCount': len(aliases), 'preferredNodeCount': sum(bool(preferred.search(x)) for x in names),
+              'ordinaryNodeCount': len(aliases), 'preferredNodeCount': sum(is_preferred(x) for x in names),
               'expectedIp': o['expectedIp'], 'expectedCountry': o['country'],
               'requiresUI': ['Config routing mode', 'Disable global fallback and scene/easy overrides',
                              'Enable Disable STUN; no stun-response-ip override', 'Compile/import and verify both routes'],

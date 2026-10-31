@@ -1,5 +1,8 @@
 # Windows 电脑 → USB iPhone：按顺序执行
 
+> New installations: start with [Universal setup](UNIVERSAL.md) and the [single maintained prompt](UNIVERSAL-PROMPT.md). Detect the actual device/client and any number of sources first. This page documents a specific adapter or the legacy two-source workflow; it is not a universal client/subscription requirement.
+
+
 适用于在 **目标 Windows 电脑的 Codex** 中执行：先修复和核验 Windows + Clash Verge Rev + Chrome，再处理数据线连接的 iPhone + Shadowrocket。没有连接手机也能先完成电脑步骤。不能用本仓库作者的 Mac、另一台 Windows 或 CI 代替这两台目标设备的验收。
 
 执行提示词见 [WINDOWS-IPHONE-PROMPT.md](WINDOWS-IPHONE-PROMPT.md)。本流程不需要重新设计路由：复用现有 Windows 安装器、手机生成器和 Documents 传输，只补齐阶段衔接。下载仓库本身不会修改任何网络设置。
@@ -13,7 +16,7 @@
 1. 读取 AGENTS、[WINDOWS](WINDOWS.md)、[PORTABILITY](PORTABILITY.md)、[LEAK-PROTECTION](LEAK-PROTECTION.md)。在原生 PowerShell 操作，不用 WSL。先检查本机已安装的 Python、Node、curl、Verge/Mihomo/Claude/Chrome 版本和真实路径。
 2. 读取旧 `.private/windows-plan/workflow.json`、备份和实际配置。不要凭“昨天没完成”重置所有设置。状态为 pending 时逐步对照回执修复；旧配置与备份保留，新候选用新 plan 目录。
 3. 用 `bootstrap.py` 确认当前联网。TUN 故障时优先恢复已有系统代理；当前 TUN 健康时保持原状。普通本机监听和现用路径都要可用，不能只看开关。不得为部署脚本先开 TUN、关安全软件或更换住宅节点。
-4. 明确本机两份订阅角色与固定住宅入口/公网出口，按 WINDOWS.md 执行 init/prepare、实际内核语法检查及隔离故障测试，然后 apply。只在需要写客户端设置时让用户保存并正常退出 Claude；不退出 Clash，不中止 Codex。
+4. 明确本机任意数量来源、固定Claude入口/公网出口和普通池，按UNIVERSAL.md生成schema2候选，再接WINDOWS.md的独立安装计划、原生语法检查及隔离测试，然后apply。旧双来源init仅兼容保留。只在需要写客户端设置时让用户保存并正常退出Claude；不退出Clash，不中止Codex。
 5. `windows_setup.py check` 现在同时复查：固定住宅出口、普通/现用路径、所选 Desktop 政策、Code 的六个代理环境键、Chrome 的 WebRTC 持久政策。缺项、机器政策覆盖、步骤中断均不能通过。新结果写入 plan 的 `verification.json`，失败会撤销旧报告中的成功状态。
 6. 浏览器有效政策/STUN、Claude 和普通流量连接链、项目级环境覆盖、工具子进程另做实际验证。默认只检查选定的范围；仅选 Code 或网页不能报告 Desktop 已完成。报告中的 `fullyVerified=false` 不可手改为 true。
 7. 全面 DNS 接管按 WINDOWS.md 的后续 TUN 流程实施：先试验与独立恢复，再实际 UDP/TCP、浏览器 DNS、IPv6 验收。不能在 TUN 未验证前关闭 Chrome DoH。若用户未允许可能影响网络的试验，或试验失败，保留工作网络并明确这一项未验收。规则配置不等于任何程序都无法直连。
@@ -60,7 +63,7 @@ Apple 官方提供 [Windows 文件共享](https://support.apple.com/en-ie/120402
 
 ## 四、读取手机自己的配置并生成、传输
 
-先备份手机原配置、当前节点和模式；确认**手机**两份订阅身份（不假定与电脑相同），住宅固定节点和已批准出口。只读规则导出可能没有节点，必须另外通过正式导出拿到节点。当前接受审阅的原生 `.conf` `[Proxy]` 格式；未知 JSON/URI 格式先核对真实样本与协议后适配，不能猜字段、漏参数或上传在线转换器。
+先备份手机原配置、当前节点和模式；确认**手机**自己的一个或多个来源、固定节点和普通池（不假定与电脑相同）。只读规则导出可能没有节点，必须另用正式导出拿到节点。Shadowrocket分支接受其原生 `.conf` `[Proxy]` 格式；未知JSON/URI先核对真实样本与协议后适配，不能猜字段、漏参数或上传在线转换器。多来源用universal清单，后续stage同样接受它。
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/windows_phone.py pull --device "设备指纹" --document "已看到的原配置.conf" --destination .private/phone-original.conf

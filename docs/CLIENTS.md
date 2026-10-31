@@ -1,5 +1,8 @@
 # 客户端设置与保障范围
 
+> New installations: start with [Universal setup](UNIVERSAL.md) and the [single maintained prompt](UNIVERSAL-PROMPT.md). Detect the actual device/client and any number of sources first. This page documents a specific adapter or the legacy two-source workflow; it is not a universal client/subscription requirement.
+
+
 ## Windows Desktop / Code
 
 见 [WINDOWS.md](WINDOWS.md)。windows_desktop.py 核验真实 exe 签名/版本，设置官方 HKCU 固定 HTTP 代理、移除 PAC 键；机器政策冲突停止。clients.py --code-only 单独合并原生 Code 设置。WSL、容器和共享 Node 需要分别验证。

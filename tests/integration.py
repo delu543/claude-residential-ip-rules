@@ -47,7 +47,9 @@ def freeport():
         s.bind(('127.0.0.1', 0)); return s.getsockname()[1]
 
 def main():
-    parser=argparse.ArgumentParser(); parser.add_argument('--mihomo', required=True); a=parser.parse_args()
+    parser=argparse.ArgumentParser(); parser.add_argument('--mihomo', required=True)
+    parser.add_argument('--snapshots',action='store_true',help='Exercise the universal multi-source inline providers')
+    a=parser.parse_args()
     us, jp, res = FakeProxy('US'), FakeProxy('JP'), FakeProxy('RES')
     proc=None
     try:
@@ -59,6 +61,11 @@ def main():
             o['ordinaryProvider']={'type':'file','path':str(td/'ordinary.json')}
             (td/'ordinary.json').write_text(json.dumps({'proxies':[us.node('US test'),jp.node('JP test')]}))
             inp={'proxies':[res.node('fixed-test')]}
+            if a.snapshots:
+                o['fixedNode']=res.node('fixed-test')
+                o['ordinaryProviders']={'ordinary-source-a':{'type':'inline','payload':[us.node('US test')]},
+                                        'ordinary-source-b':{'type':'inline','payload':[jp.node('JP test')]}}
+                inp={'proxies':[us.node('unrelated-active-subscription')]}
             js="const {build}=require(process.argv[1]);let fs=require('fs'),i=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(JSON.stringify(build(i.c,i.o)));"
             cfg=json.loads(subprocess.check_output(['node','-e',js,str(ROOT/'src/routing.js')],input=json.dumps({'c':inp,'o':o}).encode()))
             # Keep generated groups/listener, substitute deterministic domain rules to

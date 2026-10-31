@@ -1,5 +1,8 @@
 # 本地实施、验收与恢复
 
+> New installations: start with [Universal setup](UNIVERSAL.md) and the [single maintained prompt](UNIVERSAL-PROMPT.md). Detect the actual device/client and any number of sources first. This page documents a specific adapter or the legacy two-source workflow; it is not a universal client/subscription requirement.
+
+
 Windows 首先使用 [WINDOWS.md](WINDOWS.md) 的原生 Windows 流程。下文为共用原则及 Mac 命令约定；Windows 热加载使用实际运行配置中的本机 named pipe，不套用 Unix socket。
 
 ## 1. 只读盘点
@@ -8,7 +11,7 @@ Windows 首先使用 [WINDOWS.md](WINDOWS.md) 的原生 Windows 流程。下文�
 
 读取当前 app bundle ID、路径、Clash/Mihomo 版本、TUN/系统代理和本机监听端口。此版本以 Mihomo v1.19.15 的语义为基线。缺少 node/python3/Ruby 或 PyYAML 时先选择目标环境已有的官方运行时；不安装不明二进制、不打印 PATH 中的密钥。
 
-## 2. 两个订阅合并
+## 2. 旧双来源兼容合并（新用户先用通用入口）
 
 住宅订阅继续作为基础 profile。扩展脚本注入普通订阅的 HTTP proxy-provider，每个分组显式限制来源。普通 provider 自行更新，不需要激活它的订阅卡片；两份套餐分别计费。
 

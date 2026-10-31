@@ -1,5 +1,8 @@
 # Windows / Mac Codex + USB iPhone 工作流
 
+> New installations: start with [Universal setup](UNIVERSAL.md) and the [single maintained prompt](UNIVERSAL-PROMPT.md). Detect the actual device/client and any number of sources first. This page documents a specific adapter or the legacy two-source workflow; it is not a universal client/subscription requirement.
+
+
 这比仅在手机上阅读仓库更适合本项目：代码、测试、备份放在电脑；手机只承载真实 Shadowrocket 路由。**USB 不是读取任意 App 数据的授权，也不自动给予界面控制。** Apple 文件共享仅对支持该能力的 App 开放；信任配对、文件共享、VPN 批准是不同权限。
 
 Windows 电脑先使用 [Windows → iPhone 顺序入口](WINDOWS-IPHONE.md)，含 PowerShell 命令、Apple 服务检查和电脑优先检查。本文下面的 shell 命令保留给 Mac；USB 协议和 Documents 安全边界两端相同。

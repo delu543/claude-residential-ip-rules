@@ -1,5 +1,22 @@
 # DNS、WebRTC 与故障诊断
 
+## 通用模式的隐私分派
+
+新用户先读 [通用实施](UNIVERSAL.md)。下面既有桌面命令仍有效，但不得套到其他平台。通用清单不预填作者的DNS地址；基于目标网络选择实际可达的IP字面量DoH，节点引导独立。DNS配置写入、系统查询被接管、浏览器无明文回退、远端解析路径是不同证据。
+
+| 入口 | 生成/配置 | 不能推断的保证 |
+|---|---|---|
+| Mac/Windows Chrome、Edge | 支持的正式政策、备份和回读；继续查有效政策与STUN | 注册表/defaults值不代表浏览器采纳，不能代表Electron/手机 |
+| 真实Mihomo客户端 | 分角色DNS；已识别Claude进程及域名UDP拒绝；TUN已有时补UDP/TCP53 | 系统代理不接管所有DNS；VPN/代理退出后的任意进程不受保护 |
+| Android的Mihomo客户端 | 原生导入；可明确选择拒绝进入该VPN的UDP并接受通话/游戏影响 | 不写桌面Chrome政策、不自动启用Android全局锁定；未实机 |
+| iPhone Shadowrocket | 原生加密DNS及无系统回退字段；导入后打开Disable STUN或明确选择拒绝UDP | USB传输不代表开关生效，原生分域DNS与Mihomo不同，未实机 |
+| iOS/Mac Surge | 原生加密DNS、`PROTOCOL,STUN,REJECT`（或明确拒绝UDP） | 不复用小火箭General字段；普通DNS为加密直连，不能称与固定出口一致；未实机 |
+| 其他浏览器/引擎 | 查正式能力、保留现状，补适配和测试 | 没有已实现适配不得宣称通过 |
+
+Surge加密DNS使用IP字面量避免引导查域名，传统DNS IP仍用于连通性检查；不自动开启可能影响USB/局域网的include-all-networks。Shadowrocket现有实验语法仍须以手机实际编译确认。STUN可以用非默认端口，不能只封3478/19302就宣称WebRTC不泄露。拒绝UDP可能导致音视频失败，且不等于完全禁用WebRTC；受代理/VPN捕获边界约束。浏览器检测站无需走Claude专线。
+
+对手机另验实际iOS/Android及浏览器版本、原生App流量、Private DNS/内置DoH、IPv4/IPv6、Wi-Fi/蜂窝转换、VPN绕过与关闭。来源和出口可变，报告只覆盖测试时的入口及样本。全机零泄露/防封号不是本仓库的承诺。
+
 ## 两个独立层面
 
 分流选择请求出口；WebRTC 策略决定网页能否自行建立直连 STUN/ICE 连接。国内网站 DIRECT + 普通外网代理时，如果浏览器未限制 WebRTC，同一网页可向国内 STUN 发请求并拿到国内公网地址，即使网页 HTTP 出口在国外。这是覆盖缺口，不能靠把检测网站改成住宅来修复。

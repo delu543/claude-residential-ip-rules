@@ -80,7 +80,8 @@ test('enabled TUN captures UDP and TCP DNS and retains unrelated options', () =>
 });
 test('Windows paths escape backslashes, exact exe boundaries and case insensitive matches',()=>{
   const {c,o}=fixture();o.platform='win32';o.claudePaths=['C:\\Users\\测试\\Claude\\Claude.exe'];o.codexPaths=['C:\\Apps\\Codex\\Codex.exe'];
-  const r=build(c,o);assert.ok(r.rules[0].includes('(?i)'));assert.ok(r.rules[0].includes('Claude\\.exe$'));
+  const r=build(c,o), processRule=r.rules.find(x=>x.includes('PROCESS-PATH-REGEX'));
+  assert.ok(processRule.includes('(?i)'));assert.ok(processRule.includes('Claude\\.exe$'));
   assert.ok(!r.rules.join('\n').includes('PROCESS-NAME,node.exe'));
 });
 test('Windows scripts never force TUN on; strict DNS is separate opt-in',()=>{
@@ -101,4 +102,17 @@ test('personal regions and resolver choices replace US/CN assumptions',()=>{
   assert.ok(r.rules.includes('GEOIP,JP,DIRECT,no-resolve'));assert.ok(!r.rules.some(x=>x.includes('GEOIP,CN')||x.includes('GEOSITE,CN')));
   assert.deepEqual(r.dns['nameserver-policy']['+.claude.ai'],['https://dns.example/dns-query#Claude 固定出口']);
   assert.deepEqual(r.dns['direct-nameserver'],['9.9.9.9#DIRECT']);
+});
+test('universal snapshots decouple fixed route from active subscription and strip stale providers',()=>{
+  const {c,o}=fixture();o.fixedNode={...c.proxies[0]};o.ordinaryProviders={a:{type:'inline',payload:[{name:'US ordinary',type:'http',server:'192.0.2.5',port:443}]},b:{type:'inline',payload:[{name:'JP ordinary',type:'http',server:'192.0.2.6',port:443}]}};
+  c.proxies=[];c['proxy-providers']={old:{type:'http',url:'https://unused.invalid/'}};
+  const r=build(c,o);assert.equal(r.proxies.length,1);assert.equal(r.proxies[0].server,o.fixedNode.server);
+  assert.deepEqual(Object.keys(r['proxy-providers']),['a','b']);assert.deepEqual(r['proxy-groups'][3].use,['a','b']);
+  assert.deepEqual(build(r,o),r);
+});
+test('known Claude domain UDP denied even with domain-only scope; unrelated listeners remain guarded',()=>{
+  const {c,o}=fixture();o.claudePaths=[];o.codexPaths=[];
+  assert.ok(build(c,o).rules.includes('AND,((NETWORK,udp),(DOMAIN-SUFFIX,claude.ai)),REJECT'));
+  o.fixedNode=c.proxies[0];o.ordinaryProviders={};c.listeners[0].proxy='old-policy';
+  assert.throws(()=>build(c,o),/depends on/);
 });

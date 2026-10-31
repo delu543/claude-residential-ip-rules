@@ -1,5 +1,17 @@
 # 功能与变更边界
 
+## 当前通用架构（2026-10-31）
+
+- active：schema2来源ID/节点角色模型、一个或多个来源、同来源mixed分节点、专线排除、同入口别名/重复防护、哈希漂移拒绝、全私有候选和回执。
+- active：有界主机盘点与草稿，真实信息不齐保留未选择；不推断套餐属性或手机权限。
+- changed：新主入口universal.py + 通用提示词取代强制“两份订阅/小火箭”的默认假设。原manage/mobile双来源入口保持兼容。
+- changed：通用模式使用已审阅节点快照；普通池跨来源，固定节点独立于当前GUI订阅；Verge部署复用原备份/热加载/回滚，保留工作网络。
+- active：Mihomo生成、Node/Python回归与本机假上游集成测试。实际目标版本/浏览器/服务仍须验收。
+- experimental：其他Mihomo客户端原生导入（包括Android）、多来源Shadowrocket、原生Surge适配；没有真实移动设备/Surge验收。
+- changed：隐私按设备/引擎分派，新增Claude域名UDP拒绝覆盖domain-only。浏览器政策、原生STUN、可选UDP拒绝分别说明影响和验证。
+- retained：Windows阶段配置、Mac客户端、Chrome/Edge回退、USB Documents和Windows每步主机复查；不移除已有稳定能力。
+- 未实现：任意客户端全自动写入、自动获取手机权限、VPN退出全进程隔离、住宅质量/防封号保证。旧表里的“active”均指工具实现，不等于任意设备验收。
+
 | 能力 | 状态 | 验收 |
 |---|---|---|
 | 双订阅同一内核分流 | active | provider来源、配置和连接链 |

@@ -1,11 +1,14 @@
 # Windows + iPhone 准备清单与自动补齐顺序
 
+> New installations: start with [Universal setup](UNIVERSAL.md) and the [single maintained prompt](UNIVERSAL-PROMPT.md). Detect the actual device/client and any number of sources first. This page documents a specific adapter or the legacy two-source workflow; it is not a universal client/subscription requirement.
+
+
 本页供目标 Windows 上的本地 Codex 执行。**先检查，复用可用环境，自动补齐已授权的缺项，然后继续电脑与手机配置。** 不把清单全部转交用户手动安装，也不在输出检查报告后结束任务。配套 [执行提示词](WINDOWS-IPHONE-PROMPT.md) 和 [两阶段流程](WINDOWS-IPHONE.md)。
 
 ## 用户提前准备的最少内容
 
 - 一台能正常联网、能运行本机命令和读写工作目录的 Windows Codex。云端网页聊天不能代替目标电脑的本地执行环境。
-- 普通、住宅两份有效订阅，明确哪份是哪种用途；住宅固定节点及预期出口需核实。已导入就复用；未导入时由 Codex 在本地支持的界面/接口协助，不在聊天中公开链接或密钥。
+- 一个或多个有效节点来源，明确固定Claude节点及普通池用途；固定节点及预期出口需核实，不要求必须购买住宅。已导入就复用；未导入时由Codex通过本地正式界面/接口协助，不在聊天公开链接或密钥。单来源多节点可显式mixed分配，只有一个节点时先解释普通池约束。
 - iPhone、支持数据传输的数据线，以及能在现场解锁和确认系统提示的人。手机暂未连接不阻止电脑阶段。
 - 手机若与电脑共用订阅，确认套餐允许多设备同时使用；用量共同计入套餐。不默认手机与电脑是同一份订阅，也不自动购买新套餐。
 
@@ -16,7 +19,7 @@
 | 对象 | 检查内容 | 缺失时的处理 |
 |---|---|---|
 | 本地 Codex | 本机命令、工作目录读写和现有联网可用 | 这是启动前提；登录、工具访问批准由本人完成；不升级或重启正在执行任务的 Codex |
-| Clash Verge Rev / Mihomo | 安装路径、版本、运行状态、真实配置目录、两份订阅及控制接口 | 在本次配置授权内从官方来源安装缺少的客户端；首次启动保留当前上网方式，待候选验证后再配置；已运行的内核不自动升级/重装 |
+| 实际代理客户端；Verge/Mihomo仅在识别匹配时 | 安装路径、版本、运行状态、真实配置目录、全部来源及控制接口 | 先复用现有客户端；只有用户选定软件缺失时才从官方来源安装，不默认安装Verge替换其他App。首次启动保留当前上网方式，已运行内核不自动升级/重装 |
 | Chrome | 实际安装、版本与企业政策 | 缺失可从官方来源安装；已装复用，不强退浏览器、不绕过企业政策 |
 | Claude Desktop | 是否使用桌面端、实际版本/签名与路径 | 用户需要且缺少时从官方来源安装；写设置前保存工作并正常退出；登录由本人完成 |
 | 原生 Claude Code | 是否在使用、真实可执行文件和项目设置 | 已安装则配置；未使用则标记 not-needed，不为凑清单额外安装。明确需要时再走官方安装方式 |

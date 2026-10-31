@@ -1,0 +1,13 @@
+{
+  "schema": 2,
+  "target": {"platform": null, "adapter": null, "client": null, "version": null, "osVersion": null, "scope": "domains-only"},
+  "sources": [],
+  "baseline": null,
+  "reviewedPolicyReplacement": false,
+  "roles": {"claude": null, "ordinary": [], "ordinaryUnavailableAccepted": false},
+  "policy": {"preferredPattern": "(?i)(美国|美國|United States|\\bUS\\b|🇺🇸)", "directCountries": [], "directGeosites": [], "directDomains": [], "extraClaudeDomains": []},
+  "privacy": {"webRTC": "unselected", "directResolvers": [], "proxiedResolvers": [], "bootstrapResolvers": []},
+  "claudePaths": [],
+  "codexPaths": [],
+  "port": null
+}

@@ -82,18 +82,17 @@ def validate_options(o):
     for p in o['claudePaths'] + o['codexPaths']:
         if not (p.startswith('/') or re.match(r'^[A-Za-z]:[\\/]', p)) or any(c in p for c in ',\n\r') or 'REPLACE' in p:
             raise ValueError('Invalid process path')
-    p = o['ordinaryProvider']
-    if p['type'] == 'http':
-        url = urllib.parse.urlsplit(p.get('url') or '')
-        if url.scheme not in ('http', 'https') or not url.hostname or url.hostname.endswith('.invalid'):
-            raise ValueError('A real ordinary subscription URL is required locally')
-        if p.get('proxy', 'DIRECT') != 'DIRECT':
-            raise ValueError('Subscription refresh must not borrow the residential group')
-    elif p['type'] == 'file':
-        if not Path(p.get('path','')).is_file():
-            raise ValueError('Ordinary local node file does not exist')
-    else:
-        raise ValueError('Unsupported ordinary source type')
+    for p in (o['ordinaryProviders'].values() if 'ordinaryProviders' in o else [o['ordinaryProvider']]):
+        validate_provider(p)
+    if o.get('fixedNode'):
+        from universal import validate_mihomo_node
+        validate_mihomo_node(o['fixedNode'])
+        if any(o['fixedNode'].get(k) != o['residential'].get(k) for k in ('name','server','port','type')):
+            raise ValueError('Fixed snapshot identity mismatch')
+        fixed = o['fixedNode']
+        for p in o.get('ordinaryProviders',{}).values():
+            if any(str(n.get('server','')).lower() == str(fixed['server']).lower() and n.get('port') == fixed['port'] for n in p.get('payload',[])):
+                raise ValueError('Ordinary nodes overlap the fixed endpoint')
     for country in o.get('directCountries', ['CN']):
         if not re.fullmatch('[A-Z]{2}',country): raise ValueError('Invalid direct country')
     for key in ('directGeosites','directDomains'):
@@ -108,6 +107,23 @@ def validate_options(o):
         raise ValueError('Node bootstrap DNS must be independent of proxy groups')
     if o['residential']['type'] in ('direct', 'reject', 'compatible', 'pass'):
         raise ValueError('Residential endpoint must be an actual proxy')
+
+def validate_provider(p):
+    if p['type'] == 'http':
+        url = urllib.parse.urlsplit(p.get('url') or '')
+        if url.scheme not in ('http', 'https') or not url.hostname or url.hostname.endswith('.invalid'):
+            raise ValueError('A real ordinary subscription URL is required locally')
+        if p.get('proxy', 'DIRECT') != 'DIRECT':
+            raise ValueError('Subscription refresh must not borrow the residential group')
+    elif p['type'] == 'file':
+        if not Path(p.get('path','')).is_file():
+            raise ValueError('Ordinary local node file does not exist')
+    elif p['type'] == 'inline':
+        from universal import validate_mihomo_node
+        if not isinstance(p.get('payload'),list) or not p['payload']:
+            raise ValueError('Empty inline provider')
+        for n in p['payload']: validate_mihomo_node(n)
+    else: raise ValueError('Unsupported ordinary source type')
 
 def discover_paths():
     if sys.platform == 'win32':
@@ -203,9 +219,10 @@ def prepare(a):
     if o.get('platform', sys.platform) != sys.platform:
         raise ValueError('Settings belong to another OS; initialize locally')
     choose_port(read(a.verge_dir / 'clash-verge.yaml'), o['port'])
-    if profiles['current'] != o['residentialUid']:
-        raise ValueError('Select the residential base profile in Clash Verge first')
-    res = items[o['residentialUid']]
+    base_uid = o.get('baseUid',o.get('residentialUid'))
+    if profiles['current'] != base_uid:
+        raise ValueError('Active base profile changed; inspect and prepare again without switching subscriptions')
+    res = items[base_uid]
     script_item = items[res['option']['script']]
     target = profile_path(a.verge_dir, script_item)
     runtime = a.verge_dir / 'clash-verge.yaml'

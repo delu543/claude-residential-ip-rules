@@ -1,5 +1,8 @@
 # 通用规则与个人配置的边界
 
+> New installations: start with [Universal setup](UNIVERSAL.md) and the [single maintained prompt](UNIVERSAL-PROMPT.md). Detect the actual device/client and any number of sources first. This page documents a specific adapter or the legacy two-source workflow; it is not a universal client/subscription requirement.
+
+
 本仓库发布的是策略和配置工具，不是某人的整份代理配置。模板中的个人字段为空，不能直接应用。运行 `manage.py init` 后才在目标机生成 `.private/settings.json`，所有客户端和预检都从该文件读取同一套参数。
 
 ## 本机入口不是住宅节点
@@ -14,7 +17,7 @@
 |---|---|
 | 操作系统、配置目录 | 按OS默认目录发现；便携/自定义目录通过Verge“打开配置目录”确认后传`--verge-dir` |
 | 订阅UID、节点名、协议、入口、端口及凭据 | 读取目标机profiles；支持实际节点协议，不固定VLESS/某供应商地址 |
-| 两份订阅分别属于哪个套餐 | 用户或目标Codex根据已授权信息明确指定，不能从名字猜计费身份 |
+| 任意数量来源及用途 | schema2用来源ID+节点选择角色；用户或目标Codex根据授权信息确认，不从名字猜计费身份 |
 | 普通订阅 | 远程URL用HTTP provider；本地含节点文件用file provider，不要求URL |
 | 固定住宅节点 | 显式选中后从本地读取四元组；失效/变化拒绝，不自动选择其他节点 |
 | 预期住宅公网IP/国家 | 用隔离代理测量并确认；不是入口server，也不从“美国”等名字推断 |
@@ -36,6 +39,6 @@
 
 ## 输入边界与未知格式
 
-支持两份不同profile：住宅含内联`proxies`，普通为远程节点订阅或含`proxies`的本地文件。对于只有proxy-providers、加密订阅、需要链式中转、无HTTP接口的代理等情况，工具会报告具体边界，让目标Codex按实际格式适配；不自动换供应商、复制作者节点或把住宅作为通用备用。本地file provider随原文件更新，但其刷新需要重新加载/验收；不像HTTP订阅自动定时拉取。
+通用入口支持任意数量原生节点快照；固定节点与普通池分别指定，不依赖当前GUI选中哪份订阅。旧manage.py init保留两份不同profile的动态HTTP/file provider兼容模式。只有proxy-providers而没有节点时，先取获准的原生缓存或正式导出；加密格式、链式中转和未知协议需独立适配，不换供应商、复制作者节点或把固定专线作通用备用。新快照不会自动更新；旧file provider需重新加载/验收，HTTP provider按自身周期刷新。
 
 已有自定义企业规则、GeoSite库、客户端格式可能不同。工具不是“任意环境一键兼容”的承诺；自动读取可靠信息，把无法推断的选择清楚列出，并保留本地备份、语法及实际连接验收。
